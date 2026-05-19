@@ -139,7 +139,7 @@
   <button data-act="run">TAKBO</button>
 </div>
 
-<div id="overlay" class="show">
+<div id="overlay">
   <div class="card" id="card">
     <div class="tag">GABI SA BARANGAY</div>
     <h1>HATINGGABI</h1>
@@ -1209,6 +1209,9 @@ world = generateWorld(1);
 player.x = world.spawn.x; player.y = world.spawn.y;
 updateCamera();
 requestAnimationFrame(loop);
+
+// straight into the game — no menu
+safeStart();
 
 })();
 </script>
