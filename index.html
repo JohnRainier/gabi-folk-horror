@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#05060a">
+<meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="pragma" content="no-cache">
+<meta http-equiv="expires" content="0">
 <title>Gabi sa Barangay</title>
 <style>
   :root {
@@ -143,8 +146,9 @@
     <p>Namatay ang mga ilaw ng inyong nayon. May gumagalaw sa kawayanan, gumagapang sa pagitan ng mga kubo. Tinatawag itong <i>aswang</i>.</p>
     <p>Maghanap ng <b>tatlong kandila</b>. Dalhin sa <b>simbahan</b>. Sindihan bago magbukang-liwayway — o ikaw ang mahahanap niya.</p>
     <p class="tag">WASD / ARROWS para gumalaw &nbsp;&middot;&nbsp; F o ILAW para sa flashlight &nbsp;&middot;&nbsp; SHIFT para tumakbo &nbsp;&middot;&nbsp; E o GAMIT para hawakan / sindihan &nbsp;&middot;&nbsp; P para tigil</p>
-    <p class="tag" style="color:var(--warm);opacity:0.9">PINDUTIN ang button o ANY KEY para magsimula</p>
+    <p class="tag" style="color:var(--warm);opacity:0.9">PINDUTIN ang button O PINDUTIN KAHIT SAAN sa screen para magsimula</p>
     <button id="startBtn">PASOK SA DILIM</button>
+    <p class="tag" id="diagPill" style="margin-top:10px;opacity:0.45">v3 &middot; events:<span id="evtCount">0</span></p>
   </div>
 </div>
 
@@ -502,10 +506,30 @@ window.addEventListener('keydown', e => {
 });
 window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = 0; });
 
-// neural-band safety: ANY pointer event while on the menu starts the game
-window.addEventListener('pointerdown', e => {
-  if (state === 'menu') { safeStart(); }
-}, true);
+// ------- neural-band safety: catch ANY input event type -------
+let evtCount = 0;
+const evtCountEl = document.getElementById('evtCount');
+function tickEvt(name) {
+  evtCount++;
+  if (evtCountEl) evtCountEl.textContent = evtCount + ' (' + name + ')';
+}
+function menuTrigger(name) {
+  tickEvt(name);
+  if (state === 'menu') {
+    setTimeout(() => { if (state === 'menu') safeStart(); }, 30);
+  }
+}
+window.addEventListener('pointerdown', () => menuTrigger('pd'), true);
+window.addEventListener('mousedown',   () => menuTrigger('md'), true);
+window.addEventListener('touchstart',  () => menuTrigger('ts'), { passive:true, capture:true });
+window.addEventListener('click',       () => menuTrigger('clk'), true);
+
+// also a heartbeat re-check: if the user has clicked at all and game still hasn't started after 1.5s, force it
+setInterval(() => {
+  if (state === 'menu' && evtCount > 0) {
+    safeStart();
+  }
+}, 1500);
 
 document.getElementById('pad').addEventListener('pointerdown', e => {
   const t = e.target.closest('button'); if (!t) return;
