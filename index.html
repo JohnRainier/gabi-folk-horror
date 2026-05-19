@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="tl">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
@@ -37,14 +37,15 @@
   #hud .candles { color:var(--warm); font-weight:700; }
   #overlay {
     position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
-    background:rgba(0,0,0,0.7); backdrop-filter:blur(4px);
+    background:rgba(0,0,0,0.78); backdrop-filter:blur(4px);
     pointer-events:none;
   }
   #overlay.show { pointer-events:auto; }
   #overlay .card {
     background:#0a0a10; border:1px solid #2a2a3a; border-radius:10px;
-    padding:22px 26px; max-width:520px; text-align:center;
+    padding:22px 26px; max-width:540px; text-align:center;
     box-shadow:0 0 60px rgba(155,28,28,0.25);
+    pointer-events:auto;
   }
   #overlay h1 { margin:0 0 6px; font-size:22px; color:var(--warm); letter-spacing:3px; }
   #overlay h1.lose { color:var(--blood); }
@@ -53,10 +54,10 @@
   #overlay .tag { font-size:11px; opacity:0.6; letter-spacing:2px; }
   #overlay button {
     margin-top:14px; background:transparent; color:var(--warm); border:1px solid var(--warm);
-    padding:10px 24px; font-weight:700; border-radius:6px; font-family:inherit; letter-spacing:2px;
-    cursor:pointer;
+    padding:12px 28px; font-weight:700; border-radius:6px; font-family:inherit; letter-spacing:2px;
+    cursor:pointer; pointer-events:auto;
   }
-  #overlay button:hover { background:var(--warm); color:#0a0a10; }
+  #overlay button:hover, #overlay button:active { background:var(--warm); color:#0a0a10; }
   .hidden { display:none !important; }
   #pad {
     position:fixed; left:8px; bottom:8px;
@@ -67,12 +68,12 @@
   }
   #pad button {
     background:rgba(10,10,16,0.7); color:var(--ink); border:1px solid #2a2a3a;
-    border-radius:8px; font-size:20px; font-family:inherit;
+    border-radius:8px; font-size:18px; font-family:inherit;
   }
   #pad button:active { background:rgba(243,168,87,0.2); }
   #pad .up    { grid-column:2; grid-row:1; }
   #pad .left  { grid-column:1; grid-row:2; }
-  #pad .act   { grid-column:2; grid-row:2; font-size:11px; letter-spacing:1px; }
+  #pad .act   { grid-column:2; grid-row:2; font-size:10px; letter-spacing:1px; }
   #pad .right { grid-column:3; grid-row:2; }
   #pad .down  { grid-column:2; grid-row:3; }
   #torch {
@@ -82,30 +83,38 @@
   #torch button {
     width:64px; height:64px; border-radius:50%;
     background:rgba(10,10,16,0.7); color:var(--warm); border:1px solid var(--warm);
-    font-size:11px; letter-spacing:1px; font-family:inherit;
+    font-size:10px; letter-spacing:1px; font-family:inherit;
   }
   #torch button:active { background:rgba(243,168,87,0.25); }
   @media (pointer: coarse) {
-    #pad, #torch { display:grid; }
+    #pad { display:grid; }
     #torch { display:flex; }
   }
   .vignette {
     position:fixed; inset:0; pointer-events:none;
     box-shadow: inset 0 0 200px 60px #000;
   }
+  /* periphery scare flash overlay */
+  #scareFlash {
+    position:fixed; inset:0; pointer-events:none; opacity:0;
+    background:radial-gradient(circle at 50% 50%, transparent 30%, rgba(155,28,28,0.6) 100%);
+    transition:opacity 0.08s;
+  }
+  #scareFlash.on { opacity:1; }
 </style>
 </head>
 <body>
 <div id="wrap"><canvas id="game" width="800" height="600"></canvas></div>
 <div class="vignette"></div>
+<div id="scareFlash"></div>
 
 <div id="hud" class="hidden">
   <div class="left">
-    <div class="pill">CANDLES <span class="candles" id="candleCount">0/3</span></div>
-    <div class="pill">FLASHLIGHT
+    <div class="pill">KANDILA <span class="candles" id="candleCount">0/3</span></div>
+    <div class="pill">ILAW
       <div class="bar"><div id="batBar" style="width:100%"></div></div>
     </div>
-    <div class="pill">HEART
+    <div class="pill">PUSO
       <div class="bar health"><div id="hpBar" style="width:100%"></div></div>
     </div>
   </div>
@@ -118,23 +127,24 @@
 <div id="pad">
   <button class="up"    data-dir="up">&#9650;</button>
   <button class="left"  data-dir="left">&#9664;</button>
-  <button class="act"   data-act="use">USE</button>
+  <button class="act"   data-act="use">GAMIT</button>
   <button class="right" data-dir="right">&#9654;</button>
   <button class="down"  data-dir="down">&#9660;</button>
 </div>
 <div id="torch">
-  <button data-act="torch">TORCH</button>
-  <button data-act="run">RUN</button>
+  <button data-act="torch">ILAW</button>
+  <button data-act="run">TAKBO</button>
 </div>
 
 <div id="overlay" class="show">
   <div class="card" id="card">
     <div class="tag">GABI SA BARANGAY</div>
-    <h1>NIGHT IN THE VILLAGE</h1>
-    <p>The lights of your village went out at midnight. Something is moving through the bamboo, dragging itself between the nipa huts. They call it <i>aswang</i>.</p>
-    <p>Find <b>three candles</b>. Carry them to the <b>chapel</b>. Light them before dawn — or it will find you first.</p>
-    <p class="tag">WASD or ARROWS to move &nbsp; &middot; &nbsp; F or click TORCH for flashlight &nbsp; &middot; &nbsp; SHIFT to run &nbsp; &middot; &nbsp; E or USE to pick up / light candles &nbsp; &middot; &nbsp; P to pause</p>
-    <button id="startBtn">ENTER THE NIGHT</button>
+    <h1>HATINGGABI</h1>
+    <p>Namatay ang mga ilaw ng inyong nayon. May gumagalaw sa kawayanan, gumagapang sa pagitan ng mga kubo. Tinatawag itong <i>aswang</i>.</p>
+    <p>Maghanap ng <b>tatlong kandila</b>. Dalhin sa <b>simbahan</b>. Sindihan bago magbukang-liwayway — o ikaw ang mahahanap niya.</p>
+    <p class="tag">WASD / ARROWS para gumalaw &nbsp;&middot;&nbsp; F o ILAW para sa flashlight &nbsp;&middot;&nbsp; SHIFT para tumakbo &nbsp;&middot;&nbsp; E o GAMIT para hawakan / sindihan &nbsp;&middot;&nbsp; P para tigil</p>
+    <p class="tag" style="color:var(--warm);opacity:0.9">PINDUTIN ang button o ANY KEY para magsimula</p>
+    <button id="startBtn">PASOK SA DILIM</button>
   </div>
 </div>
 
@@ -156,13 +166,12 @@ const batBar = document.getElementById('batBar');
 const hpBar  = document.getElementById('hpBar');
 const clockPill = document.getElementById('clockPill');
 const hintPill  = document.getElementById('hintPill');
+const scareFlash = document.getElementById('scareFlash');
 
-const VW = 800, VH = 600;            // virtual view size
-const WORLD_W = 2400, WORLD_H = 2400; // world size in pixels
-const TILE = 32;
+const VW = 800, VH = 600;
+const WORLD_W = 2400, WORLD_H = 2400;
 
 function resize() {
-  // fit canvas while preserving 4:3 aspect
   const maxW = Math.min(window.innerWidth - 12, 1200);
   const maxH = Math.min(window.innerHeight - 12, 900);
   let w = maxW, h = w * (VH/VW);
@@ -174,29 +183,37 @@ window.addEventListener('resize', resize);
 resize();
 
 // ---------------------------------------------------------------------------
-// Audio (procedural, WebAudio)
+// Audio (procedural)
 // ---------------------------------------------------------------------------
 let actx = null;
 let audioOn = true;
 let masterGain, ambientGain, heartGain;
+let noiseBuf = null;
+
 function ensureAudio() {
   if (actx) return;
-  actx = new (window.AudioContext || window.webkitAudioContext)();
-  masterGain = actx.createGain(); masterGain.gain.value = 0.45; masterGain.connect(actx.destination);
+  try {
+    actx = new (window.AudioContext || window.webkitAudioContext)();
+  } catch (e) {
+    console.warn('audio unavailable:', e);
+    audioOn = false;
+    return;
+  }
+  masterGain  = actx.createGain(); masterGain.gain.value = 0.45; masterGain.connect(actx.destination);
   ambientGain = actx.createGain(); ambientGain.gain.value = 0.7; ambientGain.connect(masterGain);
-  heartGain   = actx.createGain(); heartGain.gain.value = 0.0;   heartGain.connect(masterGain);
+  heartGain   = actx.createGain(); heartGain.gain.value   = 0.0; heartGain.connect(masterGain);
 
-  // cricket / cicada loop — filtered noise pulses
-  const noiseBuf = actx.createBuffer(1, actx.sampleRate * 2, actx.sampleRate);
+  noiseBuf = actx.createBuffer(1, actx.sampleRate * 2, actx.sampleRate);
   const nd = noiseBuf.getChannelData(0);
   for (let i=0; i<nd.length; i++) nd[i] = (Math.random()*2-1);
-  function cricket() {
+
+  // Cricket / cicada loop
+  (function cricket() {
     const src = actx.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
     const bp = actx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=4200; bp.Q.value=14;
     const g = actx.createGain(); g.gain.value = 0.0;
     src.connect(bp); bp.connect(g); g.connect(ambientGain);
     src.start();
-    // pulse the gain
     function pulse() {
       const t = actx.currentTime;
       g.gain.cancelScheduledValues(t);
@@ -206,21 +223,55 @@ function ensureAudio() {
       setTimeout(pulse, 220 + Math.random()*340);
     }
     pulse();
-  }
-  cricket();
+  })();
 
-  // low wind drone
+  // Wind drone
   const drone = actx.createOscillator();
   drone.type='sawtooth'; drone.frequency.value = 55;
   const droneFilter = actx.createBiquadFilter(); droneFilter.type='lowpass'; droneFilter.frequency.value=180;
   const droneGain = actx.createGain(); droneGain.gain.value = 0.05;
   drone.connect(droneFilter); droneFilter.connect(droneGain); droneGain.connect(ambientGain);
   drone.start();
-  // slow LFO on the gain
   const lfo = actx.createOscillator(); lfo.frequency.value = 0.13;
   const lfoGain = actx.createGain(); lfoGain.gain.value = 0.04;
   lfo.connect(lfoGain); lfoGain.connect(droneGain.gain);
   lfo.start();
+
+  // Random distant dog bark / rooster every 15-40 sec
+  function distantDog() {
+    if (!actx) return;
+    const t = actx.currentTime;
+    const o = actx.createOscillator(); o.type = 'sawtooth';
+    o.frequency.setValueAtTime(220 + Math.random()*60, t);
+    o.frequency.exponentialRampToValueAtTime(110, t + 0.35);
+    const bp = actx.createBiquadFilter(); bp.type='lowpass'; bp.frequency.value=420;
+    const g = actx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.07, t + 0.04);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+    o.connect(bp); bp.connect(g); g.connect(masterGain);
+    o.start(t); o.stop(t + 0.45);
+    setTimeout(distantDog, 15000 + Math.random()*25000);
+  }
+  setTimeout(distantDog, 8000 + Math.random()*8000);
+
+  // Random door creak every 25-60 sec
+  function distantCreak() {
+    if (!actx) return;
+    const t = actx.currentTime;
+    const src = actx.createBufferSource(); src.buffer = noiseBuf;
+    const bp = actx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=900; bp.Q.value=10;
+    bp.frequency.setValueAtTime(900, t);
+    bp.frequency.linearRampToValueAtTime(380, t + 1.2);
+    const g = actx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.05, t + 0.4);
+    g.gain.linearRampToValueAtTime(0.0,  t + 1.2);
+    src.connect(bp); bp.connect(g); g.connect(masterGain);
+    src.start(t); src.stop(t + 1.3);
+    setTimeout(distantCreak, 25000 + Math.random()*35000);
+  }
+  setTimeout(distantCreak, 14000 + Math.random()*10000);
 }
 
 function blip(freq, dur, type, vol) {
@@ -254,7 +305,7 @@ function scream() {
   o.frequency.exponentialRampToValueAtTime(70, t + 1.4);
   const g = actx.createGain(); g.gain.value=0;
   g.gain.setValueAtTime(0, t);
-  g.gain.linearRampToValueAtTime(0.5, t+0.05);
+  g.gain.linearRampToValueAtTime(0.55, t+0.05);
   g.gain.exponentialRampToValueAtTime(0.001, t+1.4);
   const bp = actx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=900; bp.Q.value=2;
   o.connect(bp); bp.connect(g); g.connect(masterGain);
@@ -264,9 +315,55 @@ function bell() {
   if (!audioOn || !actx) return;
   [880, 660, 440].forEach((f,i) => setTimeout(() => blip(f, 1.2, 'triangle', 0.25), i*180));
 }
+// Wet, child-like giggle — sine wobble + filtered noise
+function giggle() {
+  if (!audioOn || !actx) return;
+  const t = actx.currentTime;
+  const o = actx.createOscillator(); o.type='triangle';
+  const baseF = 480 + Math.random()*120;
+  o.frequency.setValueAtTime(baseF, t);
+  for (let i=1; i<=8; i++) {
+    o.frequency.linearRampToValueAtTime(baseF*(1 + (i%2?0.18:-0.12)), t + i*0.07);
+  }
+  const bp = actx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=1200; bp.Q.value=4;
+  const g = actx.createGain();
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(0.18, t + 0.05);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
+  o.connect(bp); bp.connect(g); g.connect(masterGain);
+  o.start(t); o.stop(t + 0.75);
+}
+// Wet breathing / whisper — random whispers behind you when aswang is near
+function whisper() {
+  if (!audioOn || !actx || !noiseBuf) return;
+  const t = actx.currentTime;
+  const src = actx.createBufferSource(); src.buffer = noiseBuf;
+  const bp = actx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=1800; bp.Q.value=8;
+  bp.frequency.setValueAtTime(1400, t);
+  bp.frequency.linearRampToValueAtTime(2400, t + 0.35);
+  bp.frequency.linearRampToValueAtTime(1100, t + 0.7);
+  const g = actx.createGain();
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(0.09, t + 0.1);
+  g.gain.linearRampToValueAtTime(0.06, t + 0.4);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.85);
+  src.connect(bp); bp.connect(g); g.connect(masterGain);
+  src.start(t); src.stop(t + 0.9);
+}
+function thump() {
+  if (!audioOn || !actx) return;
+  const t = actx.currentTime;
+  const o = actx.createOscillator(); o.type='sine'; o.frequency.value = 40;
+  o.frequency.exponentialRampToValueAtTime(20, t + 0.3);
+  const g = actx.createGain(); g.gain.value = 0;
+  g.gain.linearRampToValueAtTime(0.8, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
+  o.connect(g); g.connect(masterGain);
+  o.start(t); o.stop(t + 0.35);
+}
 
 // ---------------------------------------------------------------------------
-// PRNG (deterministic per world seed)
+// PRNG
 // ---------------------------------------------------------------------------
 function mulberry32(a) {
   return function() {
@@ -278,33 +375,20 @@ function mulberry32(a) {
 }
 
 // ---------------------------------------------------------------------------
-// World generation
+// World gen (unchanged structure)
 // ---------------------------------------------------------------------------
 let world;
 function generateWorld(seed) {
   const rand = mulberry32(seed);
   const w = {
-    seed,
-    huts:    [],   // {x,y,w,h, doorSide}
-    trees:   [],   // {x,y,r}
-    rocks:   [],   // {x,y,r}
-    fences:  [],   // {x1,y1,x2,y2}
-    grass:   [],   // {x,y} - decorative bamboo tufts
-    river:   null, // {points:[...]}
-    chapel:  null, // {x,y,w,h}
-    candles: [],   // {x,y, collected:false}
-    batteries:[],  // {x,y, collected:false}
-    spawn:   {x:0,y:0},
+    seed, huts:[], trees:[], rocks:[], grass:[], river:null,
+    chapel:null, candles:[], batteries:[], spawn:{x:0,y:0},
+    ghostMarkers:[], // false silhouettes pop here
   };
-
-  // Chapel placement — far corner
   const chW = 220, chH = 180;
   w.chapel = { x: WORLD_W - chW - 200, y: 200, w: chW, h: chH };
-
-  // Player spawn — opposite corner
   w.spawn = { x: 220, y: WORLD_H - 260 };
 
-  // Huts placed without overlap
   function rectsOverlap(a, b, pad=24) {
     return !(a.x+a.w+pad < b.x || b.x+b.w+pad < a.x || a.y+a.h+pad < b.y || b.y+b.h+pad < a.y);
   }
@@ -316,7 +400,6 @@ function generateWorld(seed) {
       const hh = 80  + Math.floor(rand()*40);
       const hx = 120 + Math.floor(rand()*(WORLD_W - hw - 240));
       const hy = 120 + Math.floor(rand()*(WORLD_H - hh - 240));
-      // keep clearing around spawn so player can move
       if (Math.hypot(hx - w.spawn.x, hy - w.spawn.y) < 220) continue;
       const r = {x:hx, y:hy, w:hw, h:hh};
       if (obstacles.some(o => rectsOverlap(r,o))) continue;
@@ -326,8 +409,6 @@ function generateWorld(seed) {
       break;
     }
   }
-
-  // Trees (banana / palm) — clusters
   for (let i=0; i<80; i++) {
     let tries=0;
     while (tries++ < 30) {
@@ -341,17 +422,9 @@ function generateWorld(seed) {
       break;
     }
   }
-
-  // Rocks
   for (let i=0; i<30; i++) {
-    w.rocks.push({
-      x: 30 + rand()*(WORLD_W-60),
-      y: 30 + rand()*(WORLD_H-60),
-      r: 8 + rand()*10,
-    });
+    w.rocks.push({ x: 30 + rand()*(WORLD_W-60), y: 30 + rand()*(WORLD_H-60), r: 8 + rand()*10 });
   }
-
-  // River — meandering bottom-left to top-right
   const pts = [];
   let rx = 0, ry = WORLD_H - 400;
   while (rx < WORLD_W + 40) {
@@ -359,13 +432,8 @@ function generateWorld(seed) {
     rx += 60;
   }
   w.river = { points: pts, width: 70 };
+  for (let i=0; i<260; i++) w.grass.push({x: rand()*WORLD_W, y: rand()*WORLD_H});
 
-  // Grass tufts (decorative)
-  for (let i=0; i<260; i++) {
-    w.grass.push({x: rand()*WORLD_W, y: rand()*WORLD_H});
-  }
-
-  // Candles — 3, scattered in/near random huts
   const candleHuts = [];
   while (candleHuts.length < 3 && w.huts.length) {
     const h = w.huts[Math.floor(rand()*w.huts.length)];
@@ -375,12 +443,9 @@ function generateWorld(seed) {
     w.candles.push({
       x: h.x + h.w/2 + (rand()*40-20),
       y: h.y + h.h/2 + (rand()*40-20),
-      collected: false,
-      lit: false,
+      collected: false, lit: false,
     });
   }
-
-  // Batteries — 4, scattered around
   for (let i=0; i<4; i++) {
     w.batteries.push({
       x: 160 + rand()*(WORLD_W-320),
@@ -388,61 +453,59 @@ function generateWorld(seed) {
       collected: false,
     });
   }
-
   return w;
 }
 
 // ---------------------------------------------------------------------------
-// Player + Aswang
+// Entities
 // ---------------------------------------------------------------------------
 const player = {
-  x:0, y:0, r:10,
-  vx:0, vy:0,
-  facing: 0,           // radians, 0 = right
-  speed: 110,          // px/sec walking
-  runSpeed: 175,
-  hp: 3, maxHp: 3,
-  battery: 1.0,        // 0..1
-  torchOn: false,
-  torchCone: Math.PI/4, // half-angle
-  torchRange: 240,
-  hasCandles: 0,
-  inv: { rosaryUsed:false },
-  walkAnim: 0,
+  x:0, y:0, r:10, vx:0, vy:0,
+  facing: 0, speed: 110, runSpeed: 175,
+  hp: 3, maxHp: 3, battery: 1.0,
+  torchOn: false, torchCone: Math.PI/4, torchRange: 240,
+  hasCandles: 0, walkAnim: 0,
 };
 const aswang = {
   x:0, y:0, r:14,
-  vx:0, vy:0,
-  state: 'wander',     // wander | stalk | chase | retreat
-  speed: 80,
-  chaseSpeed: 170,
-  sees: false,
-  cooldown: 0,
-  hitCooldown: 0,
-  retreatUntil: 0,
-  wanderTarget: null,
+  state: 'wander', speed: 80, chaseSpeed: 170,
+  sees:false, cooldown:0, hitCooldown:0, retreatUntil:0,
+  wanderTarget:null,
 };
 
-// Time of night: starts at 04:00 (4 hours before dawn 08:00 = 4 in-game hours).
-// We compress 4 hours into 6 minutes real-time. dawn happens when nightT reaches 1.
 let nightT = 0;
-const NIGHT_DURATION = 6 * 60; // seconds
+const NIGHT_DURATION = 6 * 60;
+
+// scare state
+let shake = 0;             // current screen shake magnitude
+let fakeSilhouette = null; // {x, y, until}
+let lastFakeAt = 0;
+let lastWhisperAt = 0;
+let lastGiggleAt = 0;
 
 // ---------------------------------------------------------------------------
 // Input
 // ---------------------------------------------------------------------------
 const keys = {};
 const padState = { up:0, down:0, left:0, right:0, run:0, use:0, torch:0 };
+
 window.addEventListener('keydown', e => {
   if (e.repeat) return;
   keys[e.key.toLowerCase()] = 1;
   if (e.key === ' ' || e.code === 'Space') e.preventDefault();
+  // any key from menu starts the game (neural-band safety)
+  if (state === 'menu') { safeStart(); return; }
   if (e.key.toLowerCase() === 'p') togglePause();
   if (e.key.toLowerCase() === 'f') toggleTorch();
-  if (e.key.toLowerCase() === 'e') tryUse();
+  if (e.key.toLowerCase() === 'e' || e.code === 'Enter') tryUse();
   if (e.key.toLowerCase() === 'm') { audioOn = !audioOn; if (masterGain) masterGain.gain.value = audioOn?0.45:0; }
 });
 window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = 0; });
+
+// neural-band safety: ANY pointer event while on the menu starts the game
+window.addEventListener('pointerdown', e => {
+  if (state === 'menu') { safeStart(); }
+}, true);
 
 document.getElementById('pad').addEventListener('pointerdown', e => {
   const t = e.target.closest('button'); if (!t) return;
@@ -463,21 +526,19 @@ document.getElementById('torch').addEventListener('click', e => {
   if (t.dataset.act === 'run')   padState.run = padState.run ? 0 : 1;
 });
 
-// click-to-face on canvas (useful for click-driven / neural-band style input)
 canvas.addEventListener('click', e => {
   if (state !== 'play') return;
   const rect = canvas.getBoundingClientRect();
   const sx = (e.clientX - rect.left) * (canvas.width / rect.width);
   const sy = (e.clientY - rect.top)  * (canvas.height / rect.height);
-  // convert to world coords using camera
   const wx = camX + sx, wy = camY + sy;
   player.facing = Math.atan2(wy - player.y, wx - player.x);
 });
 
 // ---------------------------------------------------------------------------
-// Game state machine
+// State machine
 // ---------------------------------------------------------------------------
-let state = 'menu';   // menu | play | pause | win | lose
+let state = 'menu';
 let bestTime = null;
 try { bestTime = parseFloat(localStorage.getItem('gabi_best')) || null; } catch(e) {}
 
@@ -489,34 +550,48 @@ function showCard(title, titleClass, html, btnLabel, action) {
     <button id="cardBtn">${btnLabel}</button>
   `;
   overlay.classList.add('show');
-  document.getElementById('cardBtn').addEventListener('click', () => {
-    overlay.classList.remove('show');
-    action();
-  });
+  const btn = document.getElementById('cardBtn');
+  btn.addEventListener('click', () => { overlay.classList.remove('show'); action(); });
+  // safety: any pointerdown on card runs action too (for stuck neural-band clicks)
+  btn.addEventListener('pointerdown', () => { setTimeout(() => { if (overlay.classList.contains('show')) { overlay.classList.remove('show'); action(); } }, 60); });
+}
+
+// Safe wrapper — never blocks on a single failure path
+function safeStart() {
+  try {
+    startGame();
+  } catch (err) {
+    console.error('startGame failed, retrying without audio:', err);
+    audioOn = false;
+    try { startGame(); }
+    catch (err2) { console.error('startGame failed second time:', err2); }
+  }
 }
 
 function startGame() {
-  ensureAudio();
+  try { ensureAudio(); } catch(e) { console.warn('audio init blocked:', e); audioOn = false; }
   world = generateWorld(Math.floor(Math.random()*1e9));
   player.x = world.spawn.x; player.y = world.spawn.y;
   player.hp = player.maxHp; player.battery = 1.0;
   player.torchOn = false; player.hasCandles = 0;
-  player.inv.rosaryUsed = false;
-  // place aswang far from player
   aswang.x = WORLD_W - 400 + Math.random()*200;
   aswang.y = WORLD_H - 400 + Math.random()*200;
   aswang.state = 'wander'; aswang.cooldown = 0; aswang.retreatUntil = 0;
   nightT = 0;
+  shake = 0; fakeSilhouette = null;
   state = 'play';
   hud.classList.remove('hidden');
-  setHint('Find candles. Bring them to the chapel.');
+  overlay.classList.remove('show');
+  setHint('Maghanap ng kandila. Dalhin sa simbahan.');
   lastTs = performance.now();
 }
 
 function togglePause() {
   if (state === 'play') {
     state = 'pause';
-    showCard('PAUSED', '', '<p>Listen to the crickets. The aswang waits.</p>', 'RESUME', () => { state='play'; lastTs=performance.now(); });
+    showCard('PAUSADO', '',
+      '<p>Pakinggan ang kuliglig. Naghihintay ang aswang.</p>',
+      'MAGPATULOY', () => { state='play'; lastTs=performance.now(); });
   } else if (state === 'pause') {
     overlay.classList.remove('show');
     state='play'; lastTs=performance.now();
@@ -527,11 +602,12 @@ function lose(reason) {
   if (state !== 'play') return;
   state = 'lose';
   scream();
+  flashScare(1.0);
   hud.classList.add('hidden');
-  showCard('CAUGHT', 'lose',
+  showCard('NAHULI', 'lose',
     `<p>${reason}</p>
-     <p class="tag">Candles lit: ${player.hasCandles} / 3</p>`,
-    'TRY AGAIN', startGame);
+     <p class="tag">Sinindihang kandila: ${world.candles.filter(c=>c.lit).length} / 3</p>`,
+    'ULITIN', safeStart);
 }
 function win() {
   if (state !== 'play') return;
@@ -540,15 +616,16 @@ function win() {
   const t = Math.floor(nightT * NIGHT_DURATION);
   if (!bestTime || t < bestTime) { bestTime = t; try { localStorage.setItem('gabi_best', String(bestTime)); } catch(e){} }
   hud.classList.add('hidden');
-  showCard('DAWN', 'win',
-    `<p>The candles burn at the altar. Somewhere in the bamboo, the aswang shrieks and is gone.</p>
-     <p class="tag">Cleared in ${t}s &nbsp; &middot; &nbsp; Best ${bestTime||t}s</p>`,
-    'PLAY AGAIN', startGame);
+  showCard('UMAGA NA', 'win',
+    `<p>Nagliliwanag ang tatlong kandila sa altar. Sa loob ng kawayanan, narinig ang sigaw ng aswang — at nawala.</p>
+     <p class="tag">Tapos sa ${t}s &nbsp;&middot;&nbsp; Pinakamabilis ${bestTime||t}s</p>`,
+    'MULING SUBUKAN', safeStart);
 }
 
 function setHint(text) { hintPill.textContent = text; }
 
-startBtn.addEventListener('click', startGame);
+startBtn.addEventListener('click', safeStart);
+startBtn.addEventListener('pointerdown', () => setTimeout(() => { if (state === 'menu') safeStart(); }, 50));
 
 // ---------------------------------------------------------------------------
 // Camera
@@ -560,17 +637,14 @@ function updateCamera() {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers — collision, line of sight
+// Helpers
 // ---------------------------------------------------------------------------
 function circleHitsHut(px, py, pr) {
   for (const h of world.huts) {
     if (px + pr > h.x && px - pr < h.x + h.w && py + pr > h.y && py - pr < h.y + h.h) {
-      // resolve to nearest edge
       const cx = Math.max(h.x, Math.min(px, h.x + h.w));
       const cy = Math.max(h.y, Math.min(py, h.y + h.h));
-      if ((px-cx)*(px-cx) + (py-cy)*(py-cy) < pr*pr) {
-        return { h, cx, cy };
-      }
+      if ((px-cx)*(px-cx) + (py-cy)*(py-cy) < pr*pr) return { h, cx, cy };
     }
   }
   return null;
@@ -583,7 +657,6 @@ function circleHitsTree(px, py, pr) {
   return null;
 }
 function lineHitsAnyHut(x1, y1, x2, y2) {
-  // sample along the segment
   const steps = Math.ceil(Math.hypot(x2-x1, y2-y1) / 8);
   for (let i=1; i<=steps; i++) {
     const t = i/steps;
@@ -594,9 +667,7 @@ function lineHitsAnyHut(x1, y1, x2, y2) {
   }
   return false;
 }
-
 function tryMove(ent, dx, dy) {
-  // try X
   if (dx !== 0) {
     const hit = circleHitsHut(ent.x + dx, ent.y, ent.r) || circleHitsTree(ent.x + dx, ent.y, ent.r);
     if (!hit) ent.x += dx;
@@ -611,47 +682,47 @@ function tryMove(ent, dx, dy) {
 
 function toggleTorch() {
   if (state !== 'play') return;
-  if (player.battery <= 0) { player.torchOn = false; setHint('Battery dead.'); return; }
+  if (player.battery <= 0) { player.torchOn = false; setHint('Patay na ang baterya.'); return; }
   player.torchOn = !player.torchOn;
   blip(player.torchOn?900:400, 0.07, 'square', 0.18);
 }
 
 function tryUse() {
   if (state !== 'play') return;
-  // pick up nearest candle / battery within range, or light at chapel
-  // candles
   for (const c of world.candles) {
     if (!c.collected && !c.lit && Math.hypot(player.x - c.x, player.y - c.y) < 28) {
       c.collected = true; player.hasCandles++;
       blip(660, 0.12, 'triangle', 0.22);
-      setHint('Candle picked up. Carry it to the chapel.');
+      setHint('Nakuha ang kandila. Dalhin sa simbahan.');
       return;
     }
   }
-  // batteries
   for (const b of world.batteries) {
     if (!b.collected && Math.hypot(player.x - b.x, player.y - b.y) < 28) {
       b.collected = true;
       player.battery = Math.min(1, player.battery + 0.5);
       blip(800, 0.12, 'square', 0.18);
-      setHint('Flashlight battery restored.');
+      setHint('Nadagdagan ang baterya.');
       return;
     }
   }
-  // chapel
   const ch = world.chapel;
   if (player.x > ch.x - 30 && player.x < ch.x + ch.w + 30 && player.y > ch.y - 30 && player.y < ch.y + ch.h + 30) {
     if (player.hasCandles > 0) {
-      // light one
       for (const c of world.candles) if (c.collected && !c.lit) { c.lit = true; break; }
       blip(880, 0.6, 'triangle', 0.25);
       const lit = world.candles.filter(c => c.lit).length;
-      setHint(`Candle lit — ${lit} of 3.`);
+      setHint(`Sinindihan ang kandila — ${lit} sa 3.`);
       if (lit === 3) setTimeout(win, 700);
     } else {
-      setHint('You need a candle to light here.');
+      setHint('Kailangan mo ng kandila para sindihan.');
     }
   }
+}
+
+function flashScare(amt) {
+  scareFlash.classList.add('on');
+  setTimeout(() => scareFlash.classList.remove('on'), 80 + amt*120);
 }
 
 // ---------------------------------------------------------------------------
@@ -660,7 +731,7 @@ function tryUse() {
 let lastTs = performance.now();
 
 function update(dt) {
-  // ---- player input ----
+  // ---- movement input ----
   let ix = 0, iy = 0;
   if (keys['w'] || keys['arrowup']    || padState.up)    iy -= 1;
   if (keys['s'] || keys['arrowdown']  || padState.down)  iy += 1;
@@ -676,17 +747,17 @@ function update(dt) {
     player.walkAnim += dt * (running ? 14 : 8);
   }
 
-  // ---- torch battery ----
+  // ---- torch ----
   if (player.torchOn) {
-    player.battery -= dt * 0.035;          // ~30 sec full burn
-    if (player.battery <= 0) { player.battery = 0; player.torchOn = false; setHint('Battery dead.'); }
+    player.battery -= dt * 0.035;
+    if (player.battery <= 0) { player.battery = 0; player.torchOn = false; setHint('Patay na ang baterya.'); }
   }
 
-  // ---- night clock ----
+  // ---- clock ----
   nightT += dt / NIGHT_DURATION;
-  if (nightT >= 1) { lose('Dawn never came. The aswang took you in the dark.'); return; }
+  if (nightT >= 1) { lose('Hindi na dumating ang umaga. Kinuha ka ng aswang sa dilim.'); return; }
 
-  // ---- aswang AI ----
+  // ---- aswang ----
   updateAswang(dt);
 
   // ---- collision aswang vs player ----
@@ -695,23 +766,59 @@ function update(dt) {
   if (dPlayer < aswang.r + player.r + 2 && aswang.hitCooldown <= 0 && aswang.state !== 'retreat') {
     player.hp -= 1; aswang.hitCooldown = 1.2;
     blip(120, 0.3, 'sawtooth', 0.35);
-    // knockback
+    thump();
+    flashScare(0.6);
+    shake = Math.max(shake, 14);
     const a = Math.atan2(player.y - aswang.y, player.x - aswang.x);
     tryMove(player, Math.cos(a)*30, Math.sin(a)*30);
-    if (player.hp <= 0) { lose('The aswang dragged you into the bamboo.'); return; }
+    if (player.hp <= 0) { lose('Hinila ka ng aswang sa loob ng kawayanan.'); return; }
   }
 
-  // ---- heartbeat scales with proximity ----
+  // ---- heartbeat + dread audio ----
   const proximity = Math.max(0, 1 - dPlayer / 380);
-  if (heartGain) heartGain.gain.value = proximity * 0.5;
+  if (heartGain) heartGain.gain.value = proximity * 0.6;
   if (proximity > 0.4 && Math.random() < dt * (2 + proximity*4)) heartbeat();
 
-  // ---- camera + HUD ----
+  // whispers when aswang is close-ish
+  const now = performance.now();
+  if (proximity > 0.35 && now - lastWhisperAt > 4500 + Math.random()*5000) {
+    whisper();
+    lastWhisperAt = now;
+  }
+  // giggle on chase
+  if (aswang.state === 'chase' && now - lastGiggleAt > 3500 + Math.random()*3500) {
+    giggle();
+    lastGiggleAt = now;
+  }
+
+  // shake decay
+  if (shake > 0) shake = Math.max(0, shake - dt * 40);
+  // shake while aswang chasing nearby
+  if (aswang.state === 'chase' && dPlayer < 180) shake = Math.max(shake, 6);
+  // shake when stalking very close
+  if (aswang.state === 'stalk' && dPlayer < 120) shake = Math.max(shake, 3);
+
+  // fake silhouette pops at random when aswang stalking
+  if ((aswang.state === 'stalk' || aswang.state === 'wander') && now - lastFakeAt > 9000 + Math.random()*16000) {
+    lastFakeAt = now;
+    // place at periphery in player's facing-ish direction
+    const ang = Math.random() * Math.PI*2;
+    const dist = 220 + Math.random()*60;
+    fakeSilhouette = {
+      x: player.x + Math.cos(ang) * dist,
+      y: player.y + Math.sin(ang) * dist,
+      until: now + 280 + Math.random()*220,
+    };
+    // soft whisper accompanies it
+    if (proximity < 0.3 && Math.random() < 0.7) whisper();
+  }
+  if (fakeSilhouette && now > fakeSilhouette.until) fakeSilhouette = null;
+
+  // ---- HUD ----
   updateCamera();
   candleEl.textContent = `${world.candles.filter(c => c.lit).length}/3`;
   batBar.style.width = (player.battery*100).toFixed(0) + '%';
   hpBar.style.width  = (player.hp / player.maxHp * 100).toFixed(0) + '%';
-  // clock 04:00 -> 08:00
   const hourF = 4 + nightT * 4;
   const hr = Math.floor(hourF);
   const mn = Math.floor((hourF - hr) * 60);
@@ -719,31 +826,32 @@ function update(dt) {
 }
 
 function updateAswang(dt) {
-  // is the player visible to the aswang? line of sight + (lit torch boosts detection range)
   const dx = player.x - aswang.x, dy = player.y - aswang.y;
   const d = Math.hypot(dx, dy);
   let detectRange = 220;
   if (player.torchOn) detectRange = 460;
-  // visibility blocked by huts
   const visible = d < detectRange && !lineHitsAnyHut(aswang.x, aswang.y, player.x, player.y);
   aswang.sees = visible;
 
-  // state transitions
   if (state === 'play') {
     if (aswang.state === 'retreat' && performance.now() > aswang.retreatUntil) aswang.state = 'wander';
     else if (aswang.state !== 'retreat') {
-      if (visible) aswang.state = 'chase';
-      else if (aswang.state === 'chase') {
-        // lost sight — stalk last-seen for a bit
-        aswang.state = 'stalk'; aswang.cooldown = 3;
-      } else if (aswang.state === 'stalk') {
+      if (visible) {
+        if (aswang.state !== 'chase') {
+          // freshly spotted player — small scare cue
+          giggle();
+          flashScare(0.3);
+        }
+        aswang.state = 'chase';
+      }
+      else if (aswang.state === 'chase') { aswang.state = 'stalk'; aswang.cooldown = 3; }
+      else if (aswang.state === 'stalk') {
         aswang.cooldown -= dt;
         if (aswang.cooldown <= 0) aswang.state = 'wander';
       }
     }
   }
 
-  // torch beam pushes aswang back when very close and lit
   if (player.torchOn && d < 130) {
     const beamDir = player.facing;
     const ang = Math.atan2(aswang.y - player.y, aswang.x - player.x);
@@ -757,19 +865,16 @@ function updateAswang(dt) {
     }
   }
 
-  // move based on state
   if (aswang.state === 'chase') {
     const a = Math.atan2(dy, dx);
     tryMove(aswang, Math.cos(a)*aswang.chaseSpeed*dt, Math.sin(a)*aswang.chaseSpeed*dt);
   } else if (aswang.state === 'stalk') {
-    // creep slowly toward player
     const a = Math.atan2(dy, dx);
     tryMove(aswang, Math.cos(a)*aswang.speed*0.7*dt, Math.sin(a)*aswang.speed*0.7*dt);
   } else if (aswang.state === 'retreat') {
     const a = Math.atan2(aswang.y - player.y, aswang.x - player.x);
     tryMove(aswang, Math.cos(a)*aswang.chaseSpeed*dt, Math.sin(a)*aswang.chaseSpeed*dt);
   } else {
-    // wander
     if (!aswang.wanderTarget || Math.hypot(aswang.wanderTarget.x-aswang.x, aswang.wanderTarget.y-aswang.y) < 24) {
       aswang.wanderTarget = { x: 100 + Math.random()*(WORLD_W-200), y: 100 + Math.random()*(WORLD_H-200) };
     }
@@ -782,13 +887,16 @@ function updateAswang(dt) {
 // Render
 // ---------------------------------------------------------------------------
 function render() {
+  // apply screen shake to camera offset
+  const sx = (Math.random()*2-1) * shake;
+  const sy = (Math.random()*2-1) * shake;
+
   ctx.fillStyle = '#080a0e';
   ctx.fillRect(0, 0, VW, VH);
 
   ctx.save();
-  ctx.translate(-camX, -camY);
+  ctx.translate(-camX + sx, -camY + sy);
 
-  // ground texture (subtle grass)
   const gridSize = 64;
   const startX = Math.floor(camX/gridSize)*gridSize;
   const startY = Math.floor(camY/gridSize)*gridSize;
@@ -800,7 +908,6 @@ function render() {
     }
   }
 
-  // river
   const r = world.river;
   ctx.strokeStyle = '#0b2230'; ctx.lineWidth = r.width;
   ctx.beginPath();
@@ -812,7 +919,6 @@ function render() {
   ctx.strokeStyle = '#0e3148'; ctx.lineWidth = r.width - 14;
   ctx.stroke();
 
-  // grass tufts
   ctx.fillStyle = '#1a2a18';
   for (const g of world.grass) {
     if (g.x < camX-20 || g.x > camX+VW+20 || g.y < camY-20 || g.y > camY+VH+20) continue;
@@ -820,59 +926,51 @@ function render() {
     ctx.fillRect(g.x+3, g.y+1, 2, 3);
   }
 
-  // rocks
   for (const k of world.rocks) {
     if (k.x < camX-30 || k.x > camX+VW+30 || k.y < camY-30 || k.y > camY+VH+30) continue;
     ctx.fillStyle = '#2a2e34'; ctx.beginPath(); ctx.arc(k.x, k.y, k.r, 0, Math.PI*2); ctx.fill();
     ctx.fillStyle = '#3a3f46'; ctx.beginPath(); ctx.arc(k.x-2, k.y-2, k.r*0.7, 0, Math.PI*2); ctx.fill();
   }
 
-  // chapel
   drawChapel(world.chapel);
-
-  // huts
   for (const h of world.huts) drawHut(h);
-
-  // trees
   for (const t of world.trees) drawTree(t);
-
-  // pickups
   for (const c of world.candles) if (!c.collected) drawCandle(c);
   for (const b of world.batteries) if (!b.collected) drawBattery(b);
 
-  // aswang
   drawAswang(aswang);
-
-  // player
   drawPlayer(player);
 
-  // torch cone (LIGHTING) — draw masked over a darkness layer
+  // fake silhouette — quick flicker, slightly transparent
+  if (fakeSilhouette) {
+    ctx.save();
+    ctx.globalAlpha = 0.7 + 0.3*Math.sin(performance.now()*0.04);
+    drawAswang({ x: fakeSilhouette.x, y: fakeSilhouette.y, state: 'stalk', r: 14 }, true);
+    ctx.restore();
+  }
+
   ctx.restore();
 
-  // darkness — bigger as night progresses, plus torch carve-out
   drawLighting();
 
-  // chapel hint glow if all candles collected
-  // (drawn on top of darkness so always visible)
   if (player.hasCandles > 0 && world.candles.some(c => c.collected && !c.lit)) {
-    const cx = world.chapel.x + world.chapel.w/2 - camX;
-    const cy = world.chapel.y + world.chapel.h/2 - camY;
     ctx.save();
     ctx.globalAlpha = 0.4 + 0.2 * Math.sin(performance.now()*0.004);
     ctx.strokeStyle = '#f3a857'; ctx.lineWidth = 2;
-    ctx.strokeRect(world.chapel.x - camX - 4, world.chapel.y - camY - 4, world.chapel.w + 8, world.chapel.h + 8);
+    ctx.strokeRect(world.chapel.x - camX - 4 + sx, world.chapel.y - camY - 4 + sy, world.chapel.w + 8, world.chapel.h + 8);
     ctx.restore();
   }
 }
 
 function drawLighting() {
-  // overlay dark; punch out torch cone + small player aura
   ctx.save();
-  ctx.fillStyle = `rgba(0,0,0,${0.78 - 0.12*Math.sin(performance.now()*0.003)})`;
+  // base darkness — heart-rate pulse
+  const proximity = aswang ? Math.max(0, 1 - Math.hypot(aswang.x - player.x, aswang.y - player.y) / 380) : 0;
+  const darkBase = 0.78 + proximity * 0.10;
+  ctx.fillStyle = `rgba(0,0,0,${darkBase - 0.12*Math.sin(performance.now()*0.003)})`;
   ctx.fillRect(0, 0, VW, VH);
 
   ctx.globalCompositeOperation = 'destination-out';
-  // small ambient aura around player
   const pxs = player.x - camX, pys = player.y - camY;
   const aura = ctx.createRadialGradient(pxs, pys, 4, pxs, pys, 70);
   aura.addColorStop(0, 'rgba(255,255,255,0.85)');
@@ -880,7 +978,6 @@ function drawLighting() {
   ctx.fillStyle = aura;
   ctx.beginPath(); ctx.arc(pxs, pys, 70, 0, Math.PI*2); ctx.fill();
 
-  // torch cone
   if (player.torchOn && player.battery > 0) {
     const ang = player.facing;
     const range = player.torchRange;
@@ -899,7 +996,6 @@ function drawLighting() {
 
   ctx.restore();
 
-  // tint warmly inside torch range
   if (player.torchOn && player.battery > 0) {
     ctx.save();
     ctx.globalCompositeOperation = 'overlay';
@@ -921,14 +1017,11 @@ function drawLighting() {
 }
 
 function drawHut(h) {
-  // walls: bamboo nipa hut — body
   ctx.fillStyle = '#3a2a1a';
   ctx.fillRect(h.x, h.y + h.h*0.45, h.w, h.h*0.55);
-  // stilts hint
   ctx.fillStyle = '#251a10';
   ctx.fillRect(h.x + 6, h.y + h.h - 6, 6, 6);
   ctx.fillRect(h.x + h.w - 12, h.y + h.h - 6, 6, 6);
-  // roof — thatched
   const roofTone = h.roofTone || 0.6;
   ctx.fillStyle = `rgb(${Math.floor(70*roofTone)},${Math.floor(50*roofTone)},${Math.floor(28*roofTone)})`;
   ctx.beginPath();
@@ -936,26 +1029,21 @@ function drawHut(h) {
   ctx.lineTo(h.x + h.w/2, h.y - 8);
   ctx.lineTo(h.x + h.w + 8, h.y + h.h*0.5);
   ctx.closePath(); ctx.fill();
-  // roof shadow under
   ctx.fillStyle = 'rgba(0,0,0,0.35)';
   ctx.fillRect(h.x - 8, h.y + h.h*0.5 - 2, h.w + 16, 4);
-  // door
   ctx.fillStyle = '#0d0805';
   if (h.doorSide === 'S')      ctx.fillRect(h.x + h.w/2 - 10, h.y + h.h - 22, 20, 22);
   else if (h.doorSide === 'N') ctx.fillRect(h.x + h.w/2 - 10, h.y + h.h*0.45, 20, 22);
   else if (h.doorSide === 'E') ctx.fillRect(h.x + h.w - 8, h.y + h.h - 30, 8, 24);
   else                          ctx.fillRect(h.x, h.y + h.h - 30, 8, 24);
-  // window
   ctx.fillStyle = '#1a0f06';
   ctx.fillRect(h.x + 14, h.y + h.h*0.55, 14, 10);
 }
 
 function drawTree(t) {
   if (t.kind === 'banana') {
-    // trunk
     ctx.fillStyle = '#3b4a28';
     ctx.fillRect(t.x - 3, t.y - 4, 6, 14);
-    // big leaves
     ctx.fillStyle = '#2a4a26';
     for (let i=0; i<5; i++) {
       const a = i*(Math.PI*2/5) + 0.4;
@@ -967,7 +1055,6 @@ function drawTree(t) {
     ctx.fillStyle = '#3a5e2c';
     ctx.beginPath(); ctx.arc(t.x, t.y - 6, t.r*0.35, 0, Math.PI*2); ctx.fill();
   } else {
-    // palm
     ctx.fillStyle = '#2b1f10';
     ctx.fillRect(t.x - 2, t.y - 2, 4, 16);
     ctx.fillStyle = '#23391a';
@@ -986,27 +1073,22 @@ function drawTree(t) {
 function drawChapel(c) {
   ctx.fillStyle = '#1a1a1a';
   ctx.fillRect(c.x, c.y + 30, c.w, c.h - 30);
-  // roof
   ctx.fillStyle = '#262626';
   ctx.beginPath();
   ctx.moveTo(c.x - 10, c.y + 50);
   ctx.lineTo(c.x + c.w/2, c.y - 10);
   ctx.lineTo(c.x + c.w + 10, c.y + 50);
   ctx.closePath(); ctx.fill();
-  // cross
   ctx.fillStyle = '#caa860';
   ctx.fillRect(c.x + c.w/2 - 2, c.y - 30, 4, 28);
   ctx.fillRect(c.x + c.w/2 - 10, c.y - 22, 20, 4);
-  // doors
   ctx.fillStyle = '#070707';
   ctx.fillRect(c.x + c.w/2 - 16, c.y + c.h - 42, 32, 42);
   ctx.strokeStyle = '#caa860'; ctx.lineWidth = 1;
   ctx.strokeRect(c.x + c.w/2 - 16, c.y + c.h - 42, 32, 42);
-  // stained-glass hint
   ctx.fillStyle = '#3a2010';
   ctx.fillRect(c.x + 16, c.y + 56, 14, 22);
   ctx.fillRect(c.x + c.w - 30, c.y + 56, 14, 22);
-  // candle altar inside (slight glow if any lit)
   const lit = world.candles.filter(x => x.lit).length;
   if (lit) {
     ctx.save();
@@ -1021,16 +1103,13 @@ function drawChapel(c) {
 
 function drawCandle(c) {
   if (c.x < camX-20 || c.x > camX+VW+20 || c.y < camY-20 || c.y > camY+VH+20) return;
-  // candle base
   ctx.fillStyle = '#e9d2a4';
   ctx.fillRect(c.x - 2, c.y - 4, 4, 10);
-  // flame
   ctx.save();
   ctx.globalAlpha = 0.7 + 0.3*Math.sin(performance.now()*0.012);
   ctx.fillStyle = '#f3a857';
   ctx.beginPath(); ctx.arc(c.x, c.y - 7, 3, 0, Math.PI*2); ctx.fill();
   ctx.restore();
-  // glow
   const g = ctx.createRadialGradient(c.x, c.y - 6, 1, c.x, c.y - 6, 20);
   g.addColorStop(0, 'rgba(243,168,87,0.55)');
   g.addColorStop(1, 'rgba(243,168,87,0)');
@@ -1050,31 +1129,26 @@ function drawBattery(b) {
 
 function drawPlayer(p) {
   const bob = Math.sin(p.walkAnim) * 1.2;
-  // shadow
   ctx.fillStyle = 'rgba(0,0,0,0.4)';
   ctx.beginPath(); ctx.ellipse(p.x, p.y + 8, 8, 3, 0, 0, Math.PI*2); ctx.fill();
-  // body
   ctx.fillStyle = '#c25d3a';
   ctx.fillRect(p.x - 5, p.y - 5 + bob, 10, 10);
-  // head
   ctx.fillStyle = '#e0b58a';
   ctx.beginPath(); ctx.arc(p.x, p.y - 8 + bob, 4, 0, Math.PI*2); ctx.fill();
-  // facing indicator (subtle eye direction)
   ctx.fillStyle = '#222';
   const fx = p.x + Math.cos(p.facing)*2;
   const fy = p.y - 8 + bob + Math.sin(p.facing)*2;
   ctx.fillRect(fx-1, fy-1, 1, 1);
 }
 
-function drawAswang(a) {
-  // only render if within view margin
+function drawAswang(a, faded) {
   if (a.x < camX-60 || a.x > camX+VW+60 || a.y < camY-60 || a.y > camY+VH+60) return;
-  // shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.5)';
-  ctx.beginPath(); ctx.ellipse(a.x, a.y + 10, 14, 4, 0, 0, Math.PI*2); ctx.fill();
-  // tattered cloak (gets bigger when chasing)
+  if (!faded) {
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.beginPath(); ctx.ellipse(a.x, a.y + 10, 14, 4, 0, 0, Math.PI*2); ctx.fill();
+  }
   const sz = a.state === 'chase' ? 18 : 14;
-  ctx.fillStyle = '#0a0a0a';
+  ctx.fillStyle = faded ? 'rgba(8,8,8,0.85)' : '#0a0a0a';
   ctx.beginPath();
   ctx.moveTo(a.x, a.y - sz);
   for (let i=0; i<14; i++) {
@@ -1084,12 +1158,10 @@ function drawAswang(a) {
     ctx.lineTo(a.x + Math.cos(ang)*rr, a.y + Math.sin(ang)*rr);
   }
   ctx.closePath(); ctx.fill();
-  // glowing eyes
   if (a.state === 'chase' || a.state === 'stalk') {
     ctx.fillStyle = '#9b1c1c';
     ctx.beginPath(); ctx.arc(a.x - 3, a.y - 2, 1.5, 0, Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.arc(a.x + 3, a.y - 2, 1.5, 0, Math.PI*2); ctx.fill();
-    // eye glow
     const eg = ctx.createRadialGradient(a.x, a.y - 2, 1, a.x, a.y - 2, 14);
     eg.addColorStop(0, 'rgba(155,28,28,0.5)');
     eg.addColorStop(1, 'rgba(155,28,28,0)');
@@ -1099,20 +1171,16 @@ function drawAswang(a) {
 }
 
 // ---------------------------------------------------------------------------
-// Main loop
+// Loop
 // ---------------------------------------------------------------------------
 function loop(ts) {
   const dt = Math.min(0.05, (ts - lastTs) / 1000);
   lastTs = ts;
-
   if (state === 'play') update(dt);
-  if (state === 'play' || state === 'pause' || state === 'win' || state === 'lose') {
-    if (world) render();
-  }
+  if (world) render();
   requestAnimationFrame(loop);
 }
 
-// initial dummy world so the menu has something behind it
 world = generateWorld(1);
 player.x = world.spawn.x; player.y = world.spawn.y;
 updateCamera();
