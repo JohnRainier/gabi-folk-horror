@@ -330,10 +330,29 @@ function sampleBrightness() {
 }
 
 // ===========================================================================
-// Entity definitions — 10 original procedural designs inspired by Filipino folklore
-// All silhouettes drawn live on overlay canvas; no external image assets.
+// Entities — 10 portraits generated via Gemini, blended over the camera feed.
+// PNGs are pre-rendered on solid black backgrounds; we composite with 'screen'
+// blend mode so the black becomes transparent over the live video.
 // ===========================================================================
-const ENTITIES = [
+const ENTITIES_IMG = [
+  { slug:'white_lady',  name:'WHITE LADY',   danger:1.0 },
+  { slug:'aswang',      name:'ASWANG',       danger:1.2 },
+  { slug:'manananggal', name:'MANANANGGAL',  danger:1.3 },
+  { slug:'tiyanak',     name:'TIYANAK',      danger:0.9 },
+  { slug:'kapre',       name:'KAPRE',        danger:0.7 },
+  { slug:'multo',       name:'MULTO',        danger:0.8 },
+  { slug:'tikbalang',   name:'TIKBALANG',    danger:1.1 },
+  { slug:'duwende',     name:'DUWENDE',      danger:0.6 },
+  { slug:'sigbin',      name:'SIGBIN',       danger:1.0 },
+  { slug:'black_lady',  name:'BLACK LADY',   danger:1.1 },
+];
+const ENTITY_IMG = {};
+ENTITIES_IMG.forEach(e => {
+  const img = new Image();
+  img.src = `entities/${e.slug}.png`;
+  ENTITY_IMG[e.slug] = img;
+});
+const ENTITIES_LEGACY_PROCEDURAL = [
   // 1. White Lady — long-haired figure in white veil
   {
     name: 'WHITE LADY',
@@ -906,7 +925,7 @@ function tickGame(ts) {
   if (state === 'safe') {
     if (isDark && (now - lastEntityClearedAt) > MIN_GAP_MS) {
       // spawn an entity in the shadow
-      const def = ENTITIES[Math.floor(Math.random() * ENTITIES.length)];
+      const def = ENTITIES_IMG[Math.floor(Math.random() * ENTITIES_IMG.length)];
       const cw = overlay.width, ch = overlay.height;
       const margin = 140;
       currentEntity = {
@@ -957,10 +976,34 @@ function drawOverlay(ts) {
   octx.clearRect(0, 0, overlay.width, overlay.height);
   if (currentEntity && currentEntity.opacity > 0.02) {
     const e = currentEntity;
-    // slight wobble per-frame for unsettling motion
     const wx = e.x + Math.sin(ts * 0.003) * 3;
     const wy = e.y + Math.cos(ts * 0.004) * 2;
-    e.def.draw(octx, wx, wy, e.scale, ts, e.opacity);
+    const img = ENTITY_IMG[e.def.slug];
+    if (img && img.complete && img.naturalWidth > 0) {
+      // 'screen' blend turns the solid-black background of the portrait transparent
+      octx.save();
+      octx.globalAlpha = e.opacity;
+      octx.globalCompositeOperation = 'screen';
+      const baseW = Math.min(overlay.width * 0.7, 520);
+      const w = baseW * e.scale;
+      const aspect = img.naturalHeight / img.naturalWidth;
+      const h = w * aspect;
+      // subtle wobble + slight zoom-in during charge for dread
+      const zoom = 1 + (1 - e.opacity) * 0.08;
+      octx.translate(wx, wy);
+      octx.scale(zoom, zoom);
+      octx.drawImage(img, -w/2, -h/2, w, h);
+      octx.restore();
+      // brief red flicker overlay during strike for menace
+      if (state === 'strike') {
+        octx.save();
+        octx.globalAlpha = 0.18 + 0.12*Math.sin(ts*0.05);
+        octx.globalCompositeOperation = 'multiply';
+        octx.fillStyle = 'rgba(150,0,0,1)';
+        octx.fillRect(0, 0, overlay.width, overlay.height);
+        octx.restore();
+      }
+    }
   }
 }
 
