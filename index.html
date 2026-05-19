@@ -3,1215 +3,995 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<meta name="theme-color" content="#05060a">
+<meta name="theme-color" content="#000000">
 <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="pragma" content="no-cache">
-<meta http-equiv="expires" content="0">
-<title>Gabi sa Barangay</title>
+<title>Gabi: Multo Cam</title>
 <style>
-  :root {
-    --bg:#05060a;
-    --ink:#cfd6e4;
-    --warm:#f3a857;
-    --blood:#9b1c1c;
-    --moss:#3c5c3c;
-  }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
-  html, body {
-    margin:0; padding:0; height:100%; background:#000; color:var(--ink);
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; margin:0; padding:0; }
+  html, body { height:100%; background:#000; color:#e8e8e8;
     font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-    overflow:hidden; touch-action:none;
+    overflow:hidden; touch-action:none; }
+  #cam {
+    position:fixed; inset:0; width:100%; height:100%;
+    object-fit:cover; background:#000;
+    filter: brightness(0.85) contrast(1.05) saturate(0.9);
   }
-  #wrap { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; }
-  #game { background:#000; image-rendering: pixelated; display:block; touch-action:none; }
-  #hud {
-    position:fixed; top:8px; left:8px; right:8px; pointer-events:none;
-    display:flex; justify-content:space-between; align-items:flex-start;
-    font-size:12px; letter-spacing:1px; text-shadow:0 1px 2px #000;
+  #fallback {
+    position:fixed; inset:0;
+    background: radial-gradient(ellipse at center, #0a0a14 0%, #000 70%);
+    display:none;
   }
-  #hud .left, #hud .right { display:flex; flex-direction:column; gap:4px; }
-  #hud .pill {
-    background:rgba(0,0,0,0.55); border:1px solid rgba(255,255,255,0.12);
-    padding:4px 8px; border-radius:6px;
-  }
-  #hud .bar { width:120px; height:6px; background:#1a1a1a; border-radius:3px; overflow:hidden; margin-top:3px; }
-  #hud .bar > div { height:100%; background:var(--warm); transition:width 0.15s; }
-  #hud .bar.health > div { background:var(--blood); }
-  #hud .candles { color:var(--warm); font-weight:700; }
   #overlay {
-    position:fixed; inset:0; display:none; align-items:center; justify-content:center;
-    background:rgba(0,0,0,0.78); backdrop-filter:blur(4px);
+    position:fixed; inset:0; pointer-events:none;
+  }
+  #vignette {
+    position:fixed; inset:0; pointer-events:none;
+    box-shadow: inset 0 0 220px 80px rgba(0,0,0,0.85);
+    transition: box-shadow 0.4s;
+  }
+  #vignette.danger {
+    box-shadow: inset 0 0 280px 120px rgba(120,0,0,0.95);
+  }
+  #redFlash {
+    position:fixed; inset:0; pointer-events:none;
+    background:rgba(155,28,28,0); transition: background 0.06s;
+  }
+  #redFlash.on { background:rgba(155,28,28,0.55); }
+  #whiteFlash {
+    position:fixed; inset:0; pointer-events:none;
+    background:rgba(255,240,200,0); transition: background 0.05s;
+  }
+  #whiteFlash.on { background:rgba(255,240,200,0.85); }
+
+  #hud {
+    position:fixed; top:10px; left:10px; right:10px;
+    display:flex; justify-content:space-between; align-items:flex-start;
+    font-size:13px; letter-spacing:1px; text-shadow:0 1px 3px #000;
     pointer-events:none;
   }
-  #overlay.show { display:flex; pointer-events:auto; }
-  #overlay .card {
-    background:#0a0a10; border:1px solid #2a2a3a; border-radius:10px;
-    padding:22px 26px; max-width:540px; text-align:center;
-    box-shadow:0 0 60px rgba(155,28,28,0.25);
-    pointer-events:auto;
+  .pill {
+    background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.18);
+    padding:5px 10px; border-radius:6px;
   }
-  #overlay h1 { margin:0 0 6px; font-size:22px; color:var(--warm); letter-spacing:3px; }
-  #overlay h1.lose { color:var(--blood); }
-  #overlay h1.win  { color:#e9d76b; }
-  #overlay p { font-size:13px; line-height:1.6; opacity:0.85; margin:8px 0; }
-  #overlay .tag { font-size:11px; opacity:0.6; letter-spacing:2px; }
-  #overlay button {
-    margin-top:14px; background:transparent; color:var(--warm); border:1px solid var(--warm);
-    padding:12px 28px; font-weight:700; border-radius:6px; font-family:inherit; letter-spacing:2px;
-    cursor:pointer; pointer-events:auto;
+  #hearts { color:#e74c3c; font-size:18px; letter-spacing:2px; }
+  #bMeter {
+    margin-top:4px; width:120px; height:5px;
+    background:#1a1a1a; border:1px solid #333; border-radius:3px; overflow:hidden;
   }
-  #overlay button:hover, #overlay button:active { background:var(--warm); color:#0a0a10; }
-  .hidden { display:none !important; }
-  #pad {
-    position:fixed; left:8px; bottom:8px;
-    display:none;
-    grid-template-columns:repeat(3, 52px);
-    grid-template-rows:repeat(3, 52px);
-    gap:4px;
+  #bMeter > div {
+    height:100%; background:linear-gradient(to right, #1a1a1a, #f3d278);
+    transition: width 0.2s;
   }
-  #pad button {
-    background:rgba(10,10,16,0.7); color:var(--ink); border:1px solid #2a2a3a;
-    border-radius:8px; font-size:18px; font-family:inherit;
+  #status {
+    position:fixed; top:50%; left:50%; transform:translate(-50%, -120px);
+    font-size:14px; letter-spacing:4px; color:#caa860;
+    text-shadow:0 0 14px #000, 0 0 24px rgba(243,168,87,0.7);
+    pointer-events:none;
   }
-  #pad button:active { background:rgba(243,168,87,0.2); }
-  #pad .up    { grid-column:2; grid-row:1; }
-  #pad .left  { grid-column:1; grid-row:2; }
-  #pad .act   { grid-column:2; grid-row:2; font-size:10px; letter-spacing:1px; }
-  #pad .right { grid-column:3; grid-row:2; }
-  #pad .down  { grid-column:2; grid-row:3; }
-  #torch {
-    position:fixed; right:8px; bottom:8px;
-    display:none; gap:6px; flex-direction:column;
+  #flashBtn {
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    width:140px; height:140px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, rgba(243,168,87,0.18), rgba(0,0,0,0.85));
+    border:2px solid rgba(243,168,87,0.6); color:#f3a857;
+    font-family:inherit; font-size:14px; font-weight:700; letter-spacing:3px;
+    box-shadow: 0 0 30px rgba(243,168,87,0.25);
+    cursor:pointer;
   }
-  #torch button {
-    width:64px; height:64px; border-radius:50%;
-    background:rgba(10,10,16,0.7); color:var(--warm); border:1px solid var(--warm);
-    font-size:10px; letter-spacing:1px; font-family:inherit;
+  #flashBtn:active { background:rgba(243,168,87,0.4); transform:translateX(-50%) scale(0.96); }
+  #flashBtn.alert {
+    animation: pulse 0.4s infinite alternate;
+    border-color:#e74c3c; color:#fff;
+    background:radial-gradient(circle at 35% 30%, rgba(231,76,60,0.5), rgba(0,0,0,0.85));
   }
-  #torch button:active { background:rgba(243,168,87,0.25); }
-  @media (pointer: coarse) {
-    #pad { display:grid; }
-    #torch { display:flex; }
+  @keyframes pulse {
+    from { box-shadow: 0 0 30px rgba(231,76,60,0.5); }
+    to   { box-shadow: 0 0 60px rgba(231,76,60,1); }
   }
-  .vignette {
-    position:fixed; inset:0; pointer-events:none;
-    box-shadow: inset 0 0 200px 60px #000;
+
+  #gameover {
+    position:fixed; inset:0; background:rgba(0,0,0,0.92);
+    display:none; align-items:center; justify-content:center;
+    flex-direction:column; text-align:center;
+    z-index:30; padding:24px;
   }
-  /* periphery scare flash overlay */
-  #scareFlash {
-    position:fixed; inset:0; pointer-events:none; opacity:0;
-    background:radial-gradient(circle at 50% 50%, transparent 30%, rgba(155,28,28,0.6) 100%);
-    transition:opacity 0.08s;
+  #gameover.show { display:flex; }
+  #gameover h1 {
+    font-size:28px; letter-spacing:6px; color:#e74c3c;
+    text-shadow:0 0 30px rgba(231,76,60,0.8); margin-bottom:14px;
   }
-  #scareFlash.on { opacity:1; }
+  #gameover p { font-size:14px; opacity:0.85; line-height:1.8; margin:4px 0; }
+  #gameover .stats { color:#f3a857; letter-spacing:2px; margin:14px 0; }
+  #gameover button {
+    margin-top:16px; background:transparent; color:#f3a857; border:1px solid #f3a857;
+    padding:14px 32px; font-family:inherit; font-weight:700; letter-spacing:4px;
+    border-radius:6px; cursor:pointer;
+  }
+  #gameover button:active { background:#f3a857; color:#000; }
+
+  #permGate {
+    position:fixed; inset:0; background:#000;
+    display:flex; align-items:center; justify-content:center;
+    flex-direction:column; text-align:center; padding:20px;
+    z-index:40;
+  }
+  #permGate.hidden { display:none; }
+  #permGate h1 { font-size:18px; letter-spacing:4px; color:#caa860; margin-bottom:10px; }
+  #permGate p { font-size:13px; opacity:0.8; max-width:380px; line-height:1.6; margin:6px 0; }
+  #permGate button {
+    margin-top:18px; background:transparent; color:#f3a857; border:1px solid #f3a857;
+    padding:14px 32px; font-family:inherit; font-weight:700; letter-spacing:3px;
+    border-radius:6px; cursor:pointer;
+  }
+  #permGate .small { font-size:11px; opacity:0.55; margin-top:14px; }
 </style>
 </head>
 <body>
-<div id="wrap"><canvas id="game" width="800" height="600"></canvas></div>
-<div class="vignette"></div>
-<div id="scareFlash"></div>
 
-<div id="hud" class="hidden">
-  <div class="left">
-    <div class="pill">KANDILA <span class="candles" id="candleCount">0/3</span></div>
-    <div class="pill">ILAW
-      <div class="bar"><div id="batBar" style="width:100%"></div></div>
+<div id="permGate">
+  <h1>GABI: MULTO</h1>
+  <p>Buksan ang camera para makita ang mundo.</p>
+  <p style="opacity:0.6">Kung walang camera permission, gagamitin ang dark fallback mode.</p>
+  <button id="permBtn">SIMULAN</button>
+  <p class="small">Pindutin ang FLASH (button o pinch) bago ka kunin ng multo. 5 buhay lang. 10 uri ng nilalang.</p>
+</div>
+
+<video id="cam" autoplay playsinline muted></video>
+<div id="fallback"></div>
+<canvas id="overlay"></canvas>
+<div id="vignette"></div>
+<div id="redFlash"></div>
+<div id="whiteFlash"></div>
+
+<div id="hud">
+  <div class="left" style="display:flex;flex-direction:column;gap:4px;">
+    <div class="pill">BUHAY <span id="hearts">&#10084;&#10084;&#10084;&#10084;&#10084;</span></div>
+    <div class="pill">LIWANAG
+      <div id="bMeter"><div id="bFill" style="width:100%"></div></div>
     </div>
-    <div class="pill">PUSO
-      <div class="bar health"><div id="hpBar" style="width:100%"></div></div>
-    </div>
   </div>
-  <div class="right">
-    <div class="pill" id="clockPill">04:00</div>
-    <div class="pill" id="hintPill" style="opacity:0.7"></div>
+  <div class="right" style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
+    <div class="pill" id="killsPill">PATAY: 0</div>
+    <div class="pill" id="timePill">00:00</div>
   </div>
 </div>
 
-<div id="pad">
-  <button class="up"    data-dir="up">&#9650;</button>
-  <button class="left"  data-dir="left">&#9664;</button>
-  <button class="act"   data-act="use">GAMIT</button>
-  <button class="right" data-dir="right">&#9654;</button>
-  <button class="down"  data-dir="down">&#9660;</button>
-</div>
-<div id="torch">
-  <button data-act="torch">ILAW</button>
-  <button data-act="run">TAKBO</button>
-</div>
+<div id="status"></div>
 
-<div id="overlay">
-  <div class="card" id="card">
-    <div class="tag">GABI SA BARANGAY</div>
-    <h1>HATINGGABI</h1>
-    <p>Namatay ang mga ilaw ng inyong nayon. May gumagalaw sa kawayanan, gumagapang sa pagitan ng mga kubo. Tinatawag itong <i>aswang</i>.</p>
-    <p>Maghanap ng <b>tatlong kandila</b>. Dalhin sa <b>simbahan</b>. Sindihan bago magbukang-liwayway — o ikaw ang mahahanap niya.</p>
-    <p class="tag">WASD / ARROWS para gumalaw &nbsp;&middot;&nbsp; F o ILAW para sa flashlight &nbsp;&middot;&nbsp; SHIFT para tumakbo &nbsp;&middot;&nbsp; E o GAMIT para hawakan / sindihan &nbsp;&middot;&nbsp; P para tigil</p>
-    <p class="tag" style="color:var(--warm);opacity:0.9">PINDUTIN ang button O PINDUTIN KAHIT SAAN sa screen para magsimula</p>
-    <button id="startBtn">PASOK SA DILIM</button>
-    <p class="tag" id="diagPill" style="margin-top:10px;opacity:0.45">v3 &middot; events:<span id="evtCount">0</span></p>
-  </div>
+<button id="flashBtn">FLASH</button>
+
+<div id="gameover">
+  <h1>NAHULI KA</h1>
+  <p id="goReason">Kinuha ka ng nilalang.</p>
+  <p class="stats" id="goStats">Patay: 0 &nbsp;&middot;&nbsp; Nabuhay ka ng 00:00</p>
+  <button id="restartBtn">MULING SUBUKAN</button>
 </div>
 
 <script>
 (() => {
 "use strict";
 
-// ---------------------------------------------------------------------------
-// Canvas + DOM
-// ---------------------------------------------------------------------------
-const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
-const hud = document.getElementById('hud');
+// ===========================================================================
+// DOM
+// ===========================================================================
+const cam = document.getElementById('cam');
+const fallback = document.getElementById('fallback');
 const overlay = document.getElementById('overlay');
-const card = document.getElementById('card');
-const startBtn = document.getElementById('startBtn');
-const candleEl = document.getElementById('candleCount');
-const batBar = document.getElementById('batBar');
-const hpBar  = document.getElementById('hpBar');
-const clockPill = document.getElementById('clockPill');
-const hintPill  = document.getElementById('hintPill');
-const scareFlash = document.getElementById('scareFlash');
-
-const VW = 800, VH = 600;
-const WORLD_W = 2400, WORLD_H = 2400;
+const octx = overlay.getContext('2d');
+const vignette = document.getElementById('vignette');
+const redFlash = document.getElementById('redFlash');
+const whiteFlash = document.getElementById('whiteFlash');
+const heartsEl = document.getElementById('hearts');
+const bFill = document.getElementById('bFill');
+const killsPill = document.getElementById('killsPill');
+const timePill = document.getElementById('timePill');
+const statusEl = document.getElementById('status');
+const flashBtn = document.getElementById('flashBtn');
+const gameover = document.getElementById('gameover');
+const goReason = document.getElementById('goReason');
+const goStats = document.getElementById('goStats');
+const restartBtn = document.getElementById('restartBtn');
+const permGate = document.getElementById('permGate');
+const permBtn = document.getElementById('permBtn');
 
 function resize() {
-  const maxW = Math.min(window.innerWidth - 12, 1200);
-  const maxH = Math.min(window.innerHeight - 12, 900);
-  let w = maxW, h = w * (VH/VW);
-  if (h > maxH) { h = maxH; w = h * (VW/VH); }
-  canvas.style.width  = Math.floor(w) + 'px';
-  canvas.style.height = Math.floor(h) + 'px';
+  overlay.width = window.innerWidth;
+  overlay.height = window.innerHeight;
 }
 window.addEventListener('resize', resize);
 resize();
 
-// ---------------------------------------------------------------------------
-// Audio (procedural)
-// ---------------------------------------------------------------------------
-let actx = null;
-let audioOn = true;
-let masterGain, ambientGain, heartGain;
-let noiseBuf = null;
-
+// ===========================================================================
+// Audio (procedural — no external assets)
+// ===========================================================================
+let actx = null, masterGain, noiseBuf;
 function ensureAudio() {
   if (actx) return;
   try {
     actx = new (window.AudioContext || window.webkitAudioContext)();
-  } catch (e) {
-    console.warn('audio unavailable:', e);
-    audioOn = false;
-    return;
-  }
-  masterGain  = actx.createGain(); masterGain.gain.value = 0.45; masterGain.connect(actx.destination);
-  ambientGain = actx.createGain(); ambientGain.gain.value = 0.7; ambientGain.connect(masterGain);
-  heartGain   = actx.createGain(); heartGain.gain.value   = 0.0; heartGain.connect(masterGain);
-
-  noiseBuf = actx.createBuffer(1, actx.sampleRate * 2, actx.sampleRate);
-  const nd = noiseBuf.getChannelData(0);
-  for (let i=0; i<nd.length; i++) nd[i] = (Math.random()*2-1);
-
-  // Cricket / cicada loop
-  (function cricket() {
-    const src = actx.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
-    const bp = actx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=4200; bp.Q.value=14;
-    const g = actx.createGain(); g.gain.value = 0.0;
-    src.connect(bp); bp.connect(g); g.connect(ambientGain);
-    src.start();
-    function pulse() {
-      const t = actx.currentTime;
-      g.gain.cancelScheduledValues(t);
-      g.gain.setValueAtTime(0.0, t);
-      g.gain.linearRampToValueAtTime(0.18, t + 0.04);
-      g.gain.linearRampToValueAtTime(0.0,  t + 0.18);
-      setTimeout(pulse, 220 + Math.random()*340);
-    }
-    pulse();
-  })();
-
-  // Wind drone
-  const drone = actx.createOscillator();
-  drone.type='sawtooth'; drone.frequency.value = 55;
-  const droneFilter = actx.createBiquadFilter(); droneFilter.type='lowpass'; droneFilter.frequency.value=180;
-  const droneGain = actx.createGain(); droneGain.gain.value = 0.05;
-  drone.connect(droneFilter); droneFilter.connect(droneGain); droneGain.connect(ambientGain);
-  drone.start();
-  const lfo = actx.createOscillator(); lfo.frequency.value = 0.13;
-  const lfoGain = actx.createGain(); lfoGain.gain.value = 0.04;
-  lfo.connect(lfoGain); lfoGain.connect(droneGain.gain);
-  lfo.start();
-
-  // Random distant dog bark / rooster every 15-40 sec
-  function distantDog() {
-    if (!actx) return;
-    const t = actx.currentTime;
-    const o = actx.createOscillator(); o.type = 'sawtooth';
-    o.frequency.setValueAtTime(220 + Math.random()*60, t);
-    o.frequency.exponentialRampToValueAtTime(110, t + 0.35);
-    const bp = actx.createBiquadFilter(); bp.type='lowpass'; bp.frequency.value=420;
-    const g = actx.createGain();
-    g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(0.07, t + 0.04);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
-    o.connect(bp); bp.connect(g); g.connect(masterGain);
-    o.start(t); o.stop(t + 0.45);
-    setTimeout(distantDog, 15000 + Math.random()*25000);
-  }
-  setTimeout(distantDog, 8000 + Math.random()*8000);
-
-  // Random door creak every 25-60 sec
-  function distantCreak() {
-    if (!actx) return;
-    const t = actx.currentTime;
-    const src = actx.createBufferSource(); src.buffer = noiseBuf;
-    const bp = actx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=900; bp.Q.value=10;
-    bp.frequency.setValueAtTime(900, t);
-    bp.frequency.linearRampToValueAtTime(380, t + 1.2);
-    const g = actx.createGain();
-    g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(0.05, t + 0.4);
-    g.gain.linearRampToValueAtTime(0.0,  t + 1.2);
-    src.connect(bp); bp.connect(g); g.connect(masterGain);
-    src.start(t); src.stop(t + 1.3);
-    setTimeout(distantCreak, 25000 + Math.random()*35000);
-  }
-  setTimeout(distantCreak, 14000 + Math.random()*10000);
+    masterGain = actx.createGain(); masterGain.gain.value = 0.5;
+    masterGain.connect(actx.destination);
+    noiseBuf = actx.createBuffer(1, actx.sampleRate * 2, actx.sampleRate);
+    const nd = noiseBuf.getChannelData(0);
+    for (let i=0; i<nd.length; i++) nd[i] = (Math.random()*2-1);
+  } catch (e) { console.warn('audio blocked:', e); }
 }
-
-function blip(freq, dur, type, vol) {
-  if (!audioOn || !actx) return;
-  const o = actx.createOscillator(); o.type = type||'sine'; o.frequency.value = freq;
-  const g = actx.createGain(); g.gain.value = 0;
-  o.connect(g); g.connect(masterGain);
+function blip(f, dur, type, vol) {
+  if (!actx) return;
   const t = actx.currentTime;
-  g.gain.setValueAtTime(0, t);
-  g.gain.linearRampToValueAtTime(vol||0.2, t + 0.01);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + (dur||0.2));
-  o.start(t); o.stop(t + (dur||0.2) + 0.05);
-}
-function heartbeat() {
-  if (!audioOn || !actx) return;
-  const t = actx.currentTime;
-  const o = actx.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(60,t);
-  o.frequency.exponentialRampToValueAtTime(30, t+0.18);
-  const g = actx.createGain(); g.gain.setValueAtTime(0, t);
-  g.gain.linearRampToValueAtTime(0.6, t + 0.02);
-  g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
-  o.connect(g); g.connect(heartGain);
-  o.start(t); o.stop(t + 0.25);
-}
-function scream() {
-  if (!audioOn || !actx) return;
-  const t = actx.currentTime;
-  const o = actx.createOscillator(); o.type='sawtooth';
-  o.frequency.setValueAtTime(180, t);
-  o.frequency.exponentialRampToValueAtTime(900, t + 0.6);
-  o.frequency.exponentialRampToValueAtTime(70, t + 1.4);
+  const o = actx.createOscillator(); o.type=type||'sine'; o.frequency.value=f;
   const g = actx.createGain(); g.gain.value=0;
-  g.gain.setValueAtTime(0, t);
-  g.gain.linearRampToValueAtTime(0.55, t+0.05);
-  g.gain.exponentialRampToValueAtTime(0.001, t+1.4);
-  const bp = actx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=900; bp.Q.value=2;
-  o.connect(bp); bp.connect(g); g.connect(masterGain);
-  o.start(t); o.stop(t+1.5);
-}
-function bell() {
-  if (!audioOn || !actx) return;
-  [880, 660, 440].forEach((f,i) => setTimeout(() => blip(f, 1.2, 'triangle', 0.25), i*180));
-}
-// Wet, child-like giggle — sine wobble + filtered noise
-function giggle() {
-  if (!audioOn || !actx) return;
-  const t = actx.currentTime;
-  const o = actx.createOscillator(); o.type='triangle';
-  const baseF = 480 + Math.random()*120;
-  o.frequency.setValueAtTime(baseF, t);
-  for (let i=1; i<=8; i++) {
-    o.frequency.linearRampToValueAtTime(baseF*(1 + (i%2?0.18:-0.12)), t + i*0.07);
-  }
-  const bp = actx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=1200; bp.Q.value=4;
-  const g = actx.createGain();
-  g.gain.setValueAtTime(0, t);
-  g.gain.linearRampToValueAtTime(0.18, t + 0.05);
-  g.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
-  o.connect(bp); bp.connect(g); g.connect(masterGain);
-  o.start(t); o.stop(t + 0.75);
-}
-// Wet breathing / whisper — random whispers behind you when aswang is near
-function whisper() {
-  if (!audioOn || !actx || !noiseBuf) return;
-  const t = actx.currentTime;
-  const src = actx.createBufferSource(); src.buffer = noiseBuf;
-  const bp = actx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=1800; bp.Q.value=8;
-  bp.frequency.setValueAtTime(1400, t);
-  bp.frequency.linearRampToValueAtTime(2400, t + 0.35);
-  bp.frequency.linearRampToValueAtTime(1100, t + 0.7);
-  const g = actx.createGain();
-  g.gain.setValueAtTime(0, t);
-  g.gain.linearRampToValueAtTime(0.09, t + 0.1);
-  g.gain.linearRampToValueAtTime(0.06, t + 0.4);
-  g.gain.exponentialRampToValueAtTime(0.001, t + 0.85);
-  src.connect(bp); bp.connect(g); g.connect(masterGain);
-  src.start(t); src.stop(t + 0.9);
+  o.connect(g); g.connect(masterGain);
+  g.gain.linearRampToValueAtTime(vol||0.2, t+0.01);
+  g.gain.exponentialRampToValueAtTime(0.001, t+(dur||0.2));
+  o.start(t); o.stop(t+(dur||0.2)+0.05);
 }
 function thump() {
-  if (!audioOn || !actx) return;
+  if (!actx) return;
   const t = actx.currentTime;
-  const o = actx.createOscillator(); o.type='sine'; o.frequency.value = 40;
-  o.frequency.exponentialRampToValueAtTime(20, t + 0.3);
-  const g = actx.createGain(); g.gain.value = 0;
-  g.gain.linearRampToValueAtTime(0.8, t + 0.01);
-  g.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
+  const o = actx.createOscillator(); o.type='sine'; o.frequency.value=45;
+  o.frequency.exponentialRampToValueAtTime(22, t+0.35);
+  const g = actx.createGain(); g.gain.value=0;
+  g.gain.linearRampToValueAtTime(0.9, t+0.01);
+  g.gain.exponentialRampToValueAtTime(0.001, t+0.4);
   o.connect(g); g.connect(masterGain);
-  o.start(t); o.stop(t + 0.35);
+  o.start(t); o.stop(t+0.45);
+}
+function stinger() {
+  if (!actx) return;
+  const t = actx.currentTime;
+  const o = actx.createOscillator(); o.type='sawtooth';
+  o.frequency.setValueAtTime(120, t);
+  o.frequency.exponentialRampToValueAtTime(1400, t+0.45);
+  const bp = actx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=900; bp.Q.value=3;
+  const g = actx.createGain(); g.gain.value=0;
+  g.gain.linearRampToValueAtTime(0.5, t+0.04);
+  g.gain.exponentialRampToValueAtTime(0.001, t+0.6);
+  o.connect(bp); bp.connect(g); g.connect(masterGain);
+  o.start(t); o.stop(t+0.65);
+}
+function whisper() {
+  if (!actx || !noiseBuf) return;
+  const t = actx.currentTime;
+  const src = actx.createBufferSource(); src.buffer = noiseBuf;
+  const bp = actx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=1700; bp.Q.value=8;
+  bp.frequency.linearRampToValueAtTime(2300, t+0.4);
+  const g = actx.createGain(); g.gain.value=0;
+  g.gain.linearRampToValueAtTime(0.1, t+0.08);
+  g.gain.exponentialRampToValueAtTime(0.001, t+0.85);
+  src.connect(bp); bp.connect(g); g.connect(masterGain);
+  src.start(t); src.stop(t+0.9);
+}
+function flashSfx() {
+  if (!actx) return;
+  blip(1800, 0.08, 'square', 0.22);
+  setTimeout(() => blip(2400, 0.05, 'square', 0.14), 40);
+}
+function hitSfx() {
+  thump();
+  setTimeout(() => blip(120, 0.3, 'sawtooth', 0.35), 60);
+}
+function loseSfx() {
+  if (!actx) return;
+  const t = actx.currentTime;
+  const o = actx.createOscillator(); o.type='sawtooth';
+  o.frequency.setValueAtTime(220, t);
+  o.frequency.exponentialRampToValueAtTime(40, t+2);
+  const g = actx.createGain(); g.gain.value=0;
+  g.gain.linearRampToValueAtTime(0.45, t+0.05);
+  g.gain.exponentialRampToValueAtTime(0.001, t+2);
+  o.connect(g); g.connect(masterGain);
+  o.start(t); o.stop(t+2.1);
 }
 
-// ---------------------------------------------------------------------------
-// PRNG
-// ---------------------------------------------------------------------------
-function mulberry32(a) {
-  return function() {
-    a |= 0; a = a + 0x6D2B79F5 | 0;
-    let t = Math.imul(a ^ a >>> 15, 1 | a);
-    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
-    return ((t ^ t >>> 14) >>> 0) / 4294967296;
-  }
-}
+// ===========================================================================
+// Camera
+// ===========================================================================
+let cameraReady = false;
+let camCanvas = document.createElement('canvas');
+camCanvas.width = 32; camCanvas.height = 24;
+const ccx = camCanvas.getContext('2d', { willReadFrequently: true });
 
-// ---------------------------------------------------------------------------
-// World gen (unchanged structure)
-// ---------------------------------------------------------------------------
-let world;
-function generateWorld(seed) {
-  const rand = mulberry32(seed);
-  const w = {
-    seed, huts:[], trees:[], rocks:[], grass:[], river:null,
-    chapel:null, candles:[], batteries:[], spawn:{x:0,y:0},
-    ghostMarkers:[], // false silhouettes pop here
-  };
-  const chW = 220, chH = 180;
-  w.chapel = { x: WORLD_W - chW - 200, y: 200, w: chW, h: chH };
-  w.spawn = { x: 220, y: WORLD_H - 260 };
-
-  function rectsOverlap(a, b, pad=24) {
-    return !(a.x+a.w+pad < b.x || b.x+b.w+pad < a.x || a.y+a.h+pad < b.y || b.y+b.h+pad < a.y);
-  }
-  const obstacles = [w.chapel];
-  for (let i=0; i<9; i++) {
-    let tries = 0;
-    while (tries++ < 80) {
-      const hw = 100 + Math.floor(rand()*60);
-      const hh = 80  + Math.floor(rand()*40);
-      const hx = 120 + Math.floor(rand()*(WORLD_W - hw - 240));
-      const hy = 120 + Math.floor(rand()*(WORLD_H - hh - 240));
-      if (Math.hypot(hx - w.spawn.x, hy - w.spawn.y) < 220) continue;
-      const r = {x:hx, y:hy, w:hw, h:hh};
-      if (obstacles.some(o => rectsOverlap(r,o))) continue;
-      r.doorSide = ['N','S','E','W'][Math.floor(rand()*4)];
-      r.roofTone = 0.55 + rand()*0.25;
-      w.huts.push(r); obstacles.push(r);
-      break;
-    }
-  }
-  for (let i=0; i<80; i++) {
-    let tries=0;
-    while (tries++ < 30) {
-      const tx = 30 + rand()*(WORLD_W-60);
-      const ty = 30 + rand()*(WORLD_H-60);
-      const tr = 14 + rand()*8;
-      if (Math.hypot(tx - w.spawn.x, ty - w.spawn.y) < 80) continue;
-      if (obstacles.some(o => o.w!==undefined &&
-          tx > o.x-tr && tx < o.x+o.w+tr && ty > o.y-tr && ty < o.y+o.h+tr)) continue;
-      w.trees.push({x:tx, y:ty, r:tr, kind: rand()<0.4 ? 'banana' : 'palm'});
-      break;
-    }
-  }
-  for (let i=0; i<30; i++) {
-    w.rocks.push({ x: 30 + rand()*(WORLD_W-60), y: 30 + rand()*(WORLD_H-60), r: 8 + rand()*10 });
-  }
-  const pts = [];
-  let rx = 0, ry = WORLD_H - 400;
-  while (rx < WORLD_W + 40) {
-    pts.push({x:rx, y:ry + Math.sin(rx*0.005)*60 + (rand()*30-15)});
-    rx += 60;
-  }
-  w.river = { points: pts, width: 70 };
-  for (let i=0; i<260; i++) w.grass.push({x: rand()*WORLD_W, y: rand()*WORLD_H});
-
-  const candleHuts = [];
-  while (candleHuts.length < 3 && w.huts.length) {
-    const h = w.huts[Math.floor(rand()*w.huts.length)];
-    if (!candleHuts.includes(h)) candleHuts.push(h);
-  }
-  for (const h of candleHuts) {
-    w.candles.push({
-      x: h.x + h.w/2 + (rand()*40-20),
-      y: h.y + h.h/2 + (rand()*40-20),
-      collected: false, lit: false,
-    });
-  }
-  for (let i=0; i<4; i++) {
-    w.batteries.push({
-      x: 160 + rand()*(WORLD_W-320),
-      y: 160 + rand()*(WORLD_H-320),
-      collected: false,
-    });
-  }
-  return w;
-}
-
-// ---------------------------------------------------------------------------
-// Entities
-// ---------------------------------------------------------------------------
-const player = {
-  x:0, y:0, r:10, vx:0, vy:0,
-  facing: 0, speed: 110, runSpeed: 175,
-  hp: 3, maxHp: 3, battery: 1.0,
-  torchOn: false, torchCone: Math.PI/4, torchRange: 240,
-  hasCandles: 0, walkAnim: 0,
-};
-const aswang = {
-  x:0, y:0, r:14,
-  state: 'wander', speed: 80, chaseSpeed: 170,
-  sees:false, cooldown:0, hitCooldown:0, retreatUntil:0,
-  wanderTarget:null,
-};
-
-let nightT = 0;
-const NIGHT_DURATION = 6 * 60;
-
-// scare state
-let shake = 0;             // current screen shake magnitude
-let fakeSilhouette = null; // {x, y, until}
-let lastFakeAt = 0;
-let lastWhisperAt = 0;
-let lastGiggleAt = 0;
-
-// ---------------------------------------------------------------------------
-// Input
-// ---------------------------------------------------------------------------
-const keys = {};
-const padState = { up:0, down:0, left:0, right:0, run:0, use:0, torch:0 };
-
-window.addEventListener('keydown', e => {
-  if (e.repeat) return;
-  keys[e.key.toLowerCase()] = 1;
-  if (e.key === ' ' || e.code === 'Space') e.preventDefault();
-  // any key from menu starts the game (neural-band safety)
-  if (state === 'menu') { safeStart(); return; }
-  if (e.key.toLowerCase() === 'p') togglePause();
-  if (e.key.toLowerCase() === 'f') toggleTorch();
-  if (e.key.toLowerCase() === 'e' || e.code === 'Enter') tryUse();
-  if (e.key.toLowerCase() === 'm') { audioOn = !audioOn; if (masterGain) masterGain.gain.value = audioOn?0.45:0; }
-});
-window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = 0; });
-
-// ------- neural-band safety: catch ANY input event type -------
-let evtCount = 0;
-const evtCountEl = document.getElementById('evtCount');
-function tickEvt(name) {
-  evtCount++;
-  if (evtCountEl) evtCountEl.textContent = evtCount + ' (' + name + ')';
-}
-function menuTrigger(name) {
-  tickEvt(name);
-  if (state === 'menu') {
-    setTimeout(() => { if (state === 'menu') safeStart(); }, 30);
-  }
-}
-window.addEventListener('pointerdown', () => menuTrigger('pd'), true);
-window.addEventListener('mousedown',   () => menuTrigger('md'), true);
-window.addEventListener('touchstart',  () => menuTrigger('ts'), { passive:true, capture:true });
-window.addEventListener('click',       () => menuTrigger('clk'), true);
-
-// also a heartbeat re-check: if the user has clicked at all and game still hasn't started after 1.5s, force it
-setInterval(() => {
-  if (state === 'menu' && evtCount > 0) {
-    safeStart();
-  }
-}, 1500);
-
-document.getElementById('pad').addEventListener('pointerdown', e => {
-  const t = e.target.closest('button'); if (!t) return;
-  if (t.dataset.dir) padState[t.dataset.dir] = 1;
-  else if (t.dataset.act === 'use') tryUse();
-});
-document.getElementById('pad').addEventListener('pointerup', e => {
-  const t = e.target.closest('button'); if (!t) return;
-  if (t.dataset.dir) padState[t.dataset.dir] = 0;
-});
-document.getElementById('pad').addEventListener('pointercancel', e => {
-  const t = e.target.closest('button'); if (!t) return;
-  if (t.dataset.dir) padState[t.dataset.dir] = 0;
-});
-document.getElementById('torch').addEventListener('click', e => {
-  const t = e.target.closest('button'); if (!t) return;
-  if (t.dataset.act === 'torch') toggleTorch();
-  if (t.dataset.act === 'run')   padState.run = padState.run ? 0 : 1;
-});
-
-canvas.addEventListener('click', e => {
-  if (state !== 'play') return;
-  const rect = canvas.getBoundingClientRect();
-  const sx = (e.clientX - rect.left) * (canvas.width / rect.width);
-  const sy = (e.clientY - rect.top)  * (canvas.height / rect.height);
-  const wx = camX + sx, wy = camY + sy;
-  player.facing = Math.atan2(wy - player.y, wx - player.x);
-});
-
-// ---------------------------------------------------------------------------
-// State machine
-// ---------------------------------------------------------------------------
-let state = 'menu';
-let bestTime = null;
-try { bestTime = parseFloat(localStorage.getItem('gabi_best')) || null; } catch(e) {}
-
-function showCard(title, titleClass, html, btnLabel, action) {
-  card.innerHTML = `
-    <div class="tag">GABI SA BARANGAY</div>
-    <h1 class="${titleClass||''}">${title}</h1>
-    ${html}
-    <button id="cardBtn">${btnLabel}</button>
-  `;
-  overlay.classList.add('show');
-  const btn = document.getElementById('cardBtn');
-  btn.addEventListener('click', () => { overlay.classList.remove('show'); action(); });
-  // safety: any pointerdown on card runs action too (for stuck neural-band clicks)
-  btn.addEventListener('pointerdown', () => { setTimeout(() => { if (overlay.classList.contains('show')) { overlay.classList.remove('show'); action(); } }, 60); });
-}
-
-// Safe wrapper — never blocks on a single failure path
-function safeStart() {
+async function requestCamera() {
   try {
-    startGame();
-  } catch (err) {
-    console.error('startGame failed, retrying without audio:', err);
-    audioOn = false;
-    try { startGame(); }
-    catch (err2) { console.error('startGame failed second time:', err2); }
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } },
+      audio: false,
+    });
+    cam.srcObject = stream;
+    await cam.play();
+    cameraReady = true;
+    console.log('camera ready');
+  } catch (e) {
+    console.warn('camera unavailable, using fallback:', e);
+    cameraReady = false;
+    cam.style.display = 'none';
+    fallback.style.display = 'block';
   }
+}
+
+// brightness sampling: 0 = black, 255 = white
+function sampleBrightness() {
+  if (!cameraReady || cam.readyState < 2) {
+    // fallback: simulate dark/bright cycles
+    return 40 + 30*Math.sin(performance.now()*0.0006);
+  }
+  try {
+    ccx.drawImage(cam, 0, 0, camCanvas.width, camCanvas.height);
+    const img = ccx.getImageData(0, 0, camCanvas.width, camCanvas.height).data;
+    let sum = 0;
+    for (let i=0; i<img.length; i+=4) {
+      // perceived luminance
+      sum += 0.299*img[i] + 0.587*img[i+1] + 0.114*img[i+2];
+    }
+    return sum / (img.length / 4);
+  } catch (e) {
+    return 100;
+  }
+}
+
+// ===========================================================================
+// Entity definitions — 10 original procedural designs inspired by Filipino folklore
+// All silhouettes drawn live on overlay canvas; no external image assets.
+// ===========================================================================
+const ENTITIES = [
+  // 1. White Lady — long-haired figure in white veil
+  {
+    name: 'WHITE LADY',
+    danger: 1.0,
+    color: 'rgba(240,240,250,$A)',
+    draw: (ctx, x, y, scale, t, op) => {
+      const s = scale;
+      // veil / dress
+      ctx.fillStyle = `rgba(240,240,250,${op*0.85})`;
+      ctx.beginPath();
+      ctx.moveTo(x - 80*s, y + 200*s);
+      ctx.quadraticCurveTo(x - 100*s, y + 60*s, x - 50*s, y - 80*s);
+      ctx.quadraticCurveTo(x, y - 120*s, x + 50*s, y - 80*s);
+      ctx.quadraticCurveTo(x + 100*s, y + 60*s, x + 80*s, y + 200*s);
+      ctx.closePath(); ctx.fill();
+      // long hair
+      ctx.fillStyle = `rgba(20,20,30,${op*0.9})`;
+      for (let i=-5; i<=5; i++) {
+        ctx.beginPath();
+        ctx.moveTo(x + i*8*s, y - 100*s);
+        ctx.lineTo(x + i*8*s + Math.sin(t*0.005+i)*4, y + 80*s + Math.sin(t*0.003+i)*8);
+        ctx.lineWidth = 3*s;
+        ctx.strokeStyle = `rgba(20,20,30,${op*0.85})`;
+        ctx.stroke();
+      }
+      // face (hidden by hair)
+      ctx.fillStyle = `rgba(220,210,210,${op*0.6})`;
+      ctx.beginPath(); ctx.ellipse(x, y - 70*s, 26*s, 32*s, 0, 0, Math.PI*2); ctx.fill();
+      // eyes — hollow
+      ctx.fillStyle = `rgba(0,0,0,${op})`;
+      ctx.beginPath(); ctx.arc(x - 10*s, y - 78*s, 4*s, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x + 10*s, y - 78*s, 4*s, 0, Math.PI*2); ctx.fill();
+    },
+  },
+
+  // 2. Aswang — winged dark silhouette
+  {
+    name: 'ASWANG',
+    danger: 1.2,
+    color: 'rgba(20,5,5,$A)',
+    draw: (ctx, x, y, scale, t, op) => {
+      const s = scale;
+      const w = 90*s + Math.sin(t*0.006)*10*s;
+      // wings
+      ctx.fillStyle = `rgba(10,5,8,${op*0.9})`;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.quadraticCurveTo(x - w*1.4, y - 30*s, x - w*1.6, y + 30*s);
+      ctx.quadraticCurveTo(x - w*0.8, y + 10*s, x, y + 20*s);
+      ctx.closePath(); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.quadraticCurveTo(x + w*1.4, y - 30*s, x + w*1.6, y + 30*s);
+      ctx.quadraticCurveTo(x + w*0.8, y + 10*s, x, y + 20*s);
+      ctx.closePath(); ctx.fill();
+      // torso
+      ctx.fillStyle = `rgba(8,4,4,${op})`;
+      ctx.beginPath();
+      ctx.ellipse(x, y + 30*s, 28*s, 60*s, 0, 0, Math.PI*2);
+      ctx.fill();
+      // head
+      ctx.beginPath();
+      ctx.ellipse(x, y - 20*s, 22*s, 26*s, 0, 0, Math.PI*2);
+      ctx.fill();
+      // glowing eyes
+      ctx.fillStyle = `rgba(255,40,20,${op})`;
+      ctx.beginPath(); ctx.arc(x - 8*s, y - 20*s, 3*s, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x + 8*s, y - 20*s, 3*s, 0, Math.PI*2); ctx.fill();
+      // eye glow
+      const eg = ctx.createRadialGradient(x, y - 20*s, 1, x, y - 20*s, 30*s);
+      eg.addColorStop(0, `rgba(255,40,20,${op*0.6})`);
+      eg.addColorStop(1, `rgba(255,40,20,0)`);
+      ctx.fillStyle = eg;
+      ctx.beginPath(); ctx.arc(x, y - 20*s, 30*s, 0, Math.PI*2); ctx.fill();
+    },
+  },
+
+  // 3. Manananggal — torso-only flying horror
+  {
+    name: 'MANANANGGAL',
+    danger: 1.3,
+    color: 'rgba(40,8,8,$A)',
+    draw: (ctx, x, y, scale, t, op) => {
+      const s = scale;
+      // ragged wings
+      ctx.fillStyle = `rgba(15,5,5,${op*0.85})`;
+      for (let i=0; i<2; i++) {
+        const dir = i===0 ? -1 : 1;
+        ctx.beginPath();
+        ctx.moveTo(x, y - 10*s);
+        for (let k=0; k<5; k++) {
+          ctx.lineTo(x + dir*(40+k*22)*s, y - 30*s + k*16*s + Math.sin(t*0.004+k)*4*s);
+          ctx.lineTo(x + dir*(30+k*22)*s, y + 10*s + k*16*s);
+        }
+        ctx.lineTo(x, y + 60*s);
+        ctx.closePath(); ctx.fill();
+      }
+      // torso (cut off at waist — ragged)
+      ctx.fillStyle = `rgba(70,20,20,${op*0.95})`;
+      ctx.beginPath();
+      ctx.moveTo(x - 30*s, y + 80*s);
+      for (let i=0; i<8; i++) {
+        const ang = i/8 * Math.PI*2;
+        ctx.lineTo(x + Math.cos(ang)*32*s, y + 50*s + Math.sin(ang)*40*s);
+      }
+      ctx.closePath(); ctx.fill();
+      // dripping entrails
+      ctx.fillStyle = `rgba(120,10,10,${op*0.85})`;
+      for (let i=-2; i<=2; i++) {
+        ctx.beginPath();
+        ctx.moveTo(x + i*12*s, y + 80*s);
+        ctx.quadraticCurveTo(x + i*12*s + Math.sin(t*0.008+i)*5*s, y + 110*s, x + i*12*s, y + 140*s);
+        ctx.lineWidth = 4*s;
+        ctx.strokeStyle = `rgba(120,10,10,${op*0.8})`;
+        ctx.stroke();
+      }
+      // head
+      ctx.fillStyle = `rgba(40,15,15,${op})`;
+      ctx.beginPath(); ctx.ellipse(x, y - 30*s, 24*s, 28*s, 0, 0, Math.PI*2); ctx.fill();
+      // mouth — wide, predatory
+      ctx.fillStyle = `rgba(0,0,0,${op})`;
+      ctx.beginPath(); ctx.ellipse(x, y - 22*s, 14*s, 8*s, 0, 0, Math.PI*2); ctx.fill();
+      // fangs
+      ctx.fillStyle = `rgba(230,220,200,${op*0.9})`;
+      ctx.beginPath();
+      ctx.moveTo(x-6*s, y-26*s); ctx.lineTo(x-3*s, y-14*s); ctx.lineTo(x-9*s, y-22*s);
+      ctx.closePath(); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(x+6*s, y-26*s); ctx.lineTo(x+3*s, y-14*s); ctx.lineTo(x+9*s, y-22*s);
+      ctx.closePath(); ctx.fill();
+    },
+  },
+
+  // 4. Tiyanak — small crouched figure
+  {
+    name: 'TIYANAK',
+    danger: 0.9,
+    color: 'rgba(80,30,20,$A)',
+    draw: (ctx, x, y, scale, t, op) => {
+      const s = scale * 0.7;
+      // crouched body
+      ctx.fillStyle = `rgba(70,30,25,${op*0.95})`;
+      ctx.beginPath();
+      ctx.ellipse(x, y + 60*s, 50*s, 60*s, 0, 0, Math.PI*2);
+      ctx.fill();
+      // oversized head
+      ctx.fillStyle = `rgba(60,25,20,${op*0.95})`;
+      ctx.beginPath();
+      ctx.ellipse(x, y - 10*s, 45*s, 50*s, 0, 0, Math.PI*2);
+      ctx.fill();
+      // eyes (bright yellow, predator)
+      ctx.fillStyle = `rgba(220,200,40,${op})`;
+      ctx.beginPath(); ctx.arc(x - 15*s, y - 14*s, 6*s, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x + 15*s, y - 14*s, 6*s, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = `rgba(0,0,0,${op})`;
+      ctx.beginPath(); ctx.arc(x - 15*s, y - 14*s, 3*s, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x + 15*s, y - 14*s, 3*s, 0, Math.PI*2); ctx.fill();
+      // wide mouth with rows of teeth
+      ctx.fillStyle = `rgba(0,0,0,${op})`;
+      ctx.beginPath();
+      ctx.ellipse(x, y + 10*s, 22*s, 8*s, 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle = `rgba(230,220,200,${op})`;
+      for (let i=-3; i<=3; i++) {
+        ctx.fillRect(x + i*5*s - 1.5*s, y + 5*s, 3*s, 6*s);
+        ctx.fillRect(x + i*5*s - 1.5*s, y + 12*s, 3*s, 5*s);
+      }
+      // small clawed hands
+      ctx.strokeStyle = `rgba(60,25,20,${op})`;
+      ctx.lineWidth = 4*s;
+      ctx.beginPath(); ctx.moveTo(x - 35*s, y + 50*s); ctx.lineTo(x - 50*s, y + 80*s); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x + 35*s, y + 50*s); ctx.lineTo(x + 50*s, y + 80*s); ctx.stroke();
+    },
+  },
+
+  // 5. Kapre — tall, hulking shadow with cigar ember
+  {
+    name: 'KAPRE',
+    danger: 0.7,
+    color: 'rgba(15,15,20,$A)',
+    draw: (ctx, x, y, scale, t, op) => {
+      const s = scale * 1.3;
+      // massive torso
+      ctx.fillStyle = `rgba(15,15,20,${op})`;
+      ctx.beginPath();
+      ctx.ellipse(x, y + 50*s, 70*s, 130*s, 0, 0, Math.PI*2);
+      ctx.fill();
+      // shoulders/arms
+      ctx.beginPath();
+      ctx.ellipse(x - 70*s, y + 30*s, 28*s, 70*s, 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(x + 70*s, y + 30*s, 28*s, 70*s, 0, 0, Math.PI*2);
+      ctx.fill();
+      // head
+      ctx.beginPath();
+      ctx.ellipse(x, y - 80*s, 38*s, 44*s, 0, 0, Math.PI*2);
+      ctx.fill();
+      // red eyes
+      ctx.fillStyle = `rgba(220,40,10,${op})`;
+      ctx.beginPath(); ctx.arc(x - 13*s, y - 84*s, 4*s, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x + 13*s, y - 84*s, 4*s, 0, Math.PI*2); ctx.fill();
+      // cigar ember (flickers)
+      const ember = 0.6 + 0.4*Math.sin(t*0.02);
+      ctx.fillStyle = `rgba(255,140,40,${op*ember})`;
+      ctx.beginPath(); ctx.arc(x + 18*s, y - 68*s, 4*s, 0, Math.PI*2); ctx.fill();
+      // smoke from cigar
+      ctx.fillStyle = `rgba(180,180,180,${op*0.2})`;
+      for (let i=0; i<6; i++) {
+        const sy = y - 80*s - i*14*s;
+        ctx.beginPath(); ctx.arc(x + 18*s + Math.sin(t*0.005+i)*8*s, sy, 6*s+i*2*s, 0, Math.PI*2); ctx.fill();
+      }
+    },
+  },
+
+  // 6. Multo — translucent ghost
+  {
+    name: 'MULTO',
+    danger: 0.8,
+    color: 'rgba(180,200,220,$A)',
+    draw: (ctx, x, y, scale, t, op) => {
+      const s = scale;
+      // wispy translucent body
+      const wobble = Math.sin(t*0.004)*6*s;
+      ctx.fillStyle = `rgba(180,200,220,${op*0.45})`;
+      ctx.beginPath();
+      ctx.moveTo(x, y - 90*s);
+      ctx.quadraticCurveTo(x + 50*s + wobble, y - 30*s, x + 40*s, y + 60*s);
+      ctx.quadraticCurveTo(x + 30*s + wobble, y + 140*s, x + 10*s, y + 160*s);
+      ctx.quadraticCurveTo(x - 10*s + wobble, y + 140*s, x - 40*s, y + 60*s);
+      ctx.quadraticCurveTo(x - 50*s + wobble, y - 30*s, x, y - 90*s);
+      ctx.closePath(); ctx.fill();
+      // inner glow
+      ctx.fillStyle = `rgba(220,230,240,${op*0.3})`;
+      ctx.beginPath();
+      ctx.ellipse(x, y, 25*s, 60*s, 0, 0, Math.PI*2);
+      ctx.fill();
+      // face — empty eyes + open mouth
+      ctx.fillStyle = `rgba(0,0,0,${op*0.7})`;
+      ctx.beginPath(); ctx.ellipse(x - 10*s, y - 55*s, 5*s, 8*s, 0, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(x + 10*s, y - 55*s, 5*s, 8*s, 0, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(x, y - 38*s, 6*s, 12*s, 0, 0, Math.PI*2); ctx.fill();
+    },
+  },
+
+  // 7. Tikbalang — tall figure with elongated horse-like head
+  {
+    name: 'TIKBALANG',
+    danger: 1.1,
+    color: 'rgba(35,25,15,$A)',
+    draw: (ctx, x, y, scale, t, op) => {
+      const s = scale * 1.1;
+      // long thin body
+      ctx.fillStyle = `rgba(35,25,15,${op*0.95})`;
+      ctx.fillRect(x - 14*s, y, 28*s, 180*s);
+      // elongated neck
+      ctx.fillRect(x - 10*s, y - 50*s, 20*s, 60*s);
+      // horse-like head — elongated muzzle
+      ctx.fillStyle = `rgba(30,20,12,${op})`;
+      ctx.beginPath();
+      ctx.ellipse(x + 10*s, y - 80*s, 30*s, 18*s, 0.3, 0, Math.PI*2);
+      ctx.fill();
+      // ears
+      ctx.beginPath();
+      ctx.moveTo(x - 10*s, y - 95*s);
+      ctx.lineTo(x - 2*s, y - 110*s);
+      ctx.lineTo(x + 2*s, y - 90*s);
+      ctx.closePath(); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(x + 18*s, y - 95*s);
+      ctx.lineTo(x + 26*s, y - 110*s);
+      ctx.lineTo(x + 14*s, y - 90*s);
+      ctx.closePath(); ctx.fill();
+      // mane
+      ctx.fillStyle = `rgba(10,5,5,${op})`;
+      for (let i=0; i<8; i++) {
+        ctx.fillRect(x - 14*s + i*4*s, y - 75*s, 3*s, 25*s);
+      }
+      // eyes
+      ctx.fillStyle = `rgba(230,200,40,${op})`;
+      ctx.beginPath(); ctx.arc(x + 5*s, y - 84*s, 3*s, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x + 20*s, y - 84*s, 3*s, 0, Math.PI*2); ctx.fill();
+      // long arms
+      ctx.strokeStyle = `rgba(35,25,15,${op})`;
+      ctx.lineWidth = 10*s;
+      ctx.beginPath(); ctx.moveTo(x - 14*s, y + 20*s); ctx.lineTo(x - 40*s, y + 100*s); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x + 14*s, y + 20*s); ctx.lineTo(x + 40*s, y + 100*s); ctx.stroke();
+    },
+  },
+
+  // 8. Duwende — small hat figure
+  {
+    name: 'DUWENDE',
+    danger: 0.6,
+    color: 'rgba(60,40,20,$A)',
+    draw: (ctx, x, y, scale, t, op) => {
+      const s = scale * 0.55;
+      // body (squat)
+      ctx.fillStyle = `rgba(60,40,20,${op})`;
+      ctx.beginPath();
+      ctx.ellipse(x, y + 70*s, 55*s, 70*s, 0, 0, Math.PI*2);
+      ctx.fill();
+      // tiny legs
+      ctx.fillRect(x - 25*s, y + 130*s, 12*s, 22*s);
+      ctx.fillRect(x + 13*s, y + 130*s, 12*s, 22*s);
+      // big head
+      ctx.fillStyle = `rgba(180,140,100,${op})`;
+      ctx.beginPath();
+      ctx.ellipse(x, y, 40*s, 44*s, 0, 0, Math.PI*2);
+      ctx.fill();
+      // huge pointed hat — red
+      ctx.fillStyle = `rgba(130,30,30,${op})`;
+      ctx.beginPath();
+      ctx.moveTo(x - 50*s, y - 30*s);
+      ctx.lineTo(x, y - 110*s);
+      ctx.lineTo(x + 50*s, y - 30*s);
+      ctx.closePath(); ctx.fill();
+      // beard
+      ctx.fillStyle = `rgba(220,220,220,${op})`;
+      ctx.beginPath();
+      ctx.ellipse(x, y + 26*s, 30*s, 20*s, 0, 0, Math.PI*2);
+      ctx.fill();
+      // black bead eyes
+      ctx.fillStyle = `rgba(0,0,0,${op})`;
+      ctx.beginPath(); ctx.arc(x - 12*s, y - 5*s, 4*s, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x + 12*s, y - 5*s, 4*s, 0, Math.PI*2); ctx.fill();
+      // sinister grin
+      ctx.strokeStyle = `rgba(40,20,20,${op})`;
+      ctx.lineWidth = 3*s;
+      ctx.beginPath();
+      ctx.arc(x, y + 12*s, 12*s, 0.1, Math.PI - 0.1);
+      ctx.stroke();
+    },
+  },
+
+  // 9. Sigbin — low-slung, four-legged creature
+  {
+    name: 'SIGBIN',
+    danger: 1.0,
+    color: 'rgba(20,10,15,$A)',
+    draw: (ctx, x, y, scale, t, op) => {
+      const s = scale;
+      // long low body (oriented sideways)
+      ctx.fillStyle = `rgba(20,10,15,${op*0.95})`;
+      ctx.beginPath();
+      ctx.ellipse(x, y + 60*s, 90*s, 35*s, 0, 0, Math.PI*2);
+      ctx.fill();
+      // four spindly legs
+      ctx.strokeStyle = `rgba(20,10,15,${op})`;
+      ctx.lineWidth = 6*s;
+      for (let i=0; i<4; i++) {
+        const lx = x + (i-1.5)*35*s;
+        ctx.beginPath();
+        ctx.moveTo(lx, y + 80*s);
+        ctx.lineTo(lx + Math.sin(t*0.01+i)*4*s, y + 140*s);
+        ctx.stroke();
+      }
+      // head dropped low (lurking)
+      ctx.fillStyle = `rgba(15,8,12,${op})`;
+      ctx.beginPath();
+      ctx.ellipse(x - 70*s, y + 75*s, 28*s, 24*s, 0, 0, Math.PI*2);
+      ctx.fill();
+      // huge ears
+      ctx.fillStyle = `rgba(40,15,20,${op*0.9})`;
+      ctx.beginPath();
+      ctx.moveTo(x - 90*s, y + 58*s);
+      ctx.lineTo(x - 110*s, y + 30*s);
+      ctx.lineTo(x - 80*s, y + 64*s);
+      ctx.closePath(); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(x - 60*s, y + 58*s);
+      ctx.lineTo(x - 50*s, y + 30*s);
+      ctx.lineTo(x - 70*s, y + 64*s);
+      ctx.closePath(); ctx.fill();
+      // glowing eye
+      ctx.fillStyle = `rgba(220,40,40,${op})`;
+      ctx.beginPath(); ctx.arc(x - 78*s, y + 70*s, 3*s, 0, Math.PI*2); ctx.fill();
+      // long whipping tail
+      ctx.strokeStyle = `rgba(20,10,15,${op})`;
+      ctx.lineWidth = 5*s;
+      ctx.beginPath();
+      ctx.moveTo(x + 80*s, y + 60*s);
+      ctx.quadraticCurveTo(x + 130*s + Math.sin(t*0.01)*10*s, y + 30*s, x + 150*s, y - 10*s);
+      ctx.stroke();
+    },
+  },
+
+  // 10. Black Lady — veiled dark figure
+  {
+    name: 'BLACK LADY',
+    danger: 1.1,
+    color: 'rgba(5,5,10,$A)',
+    draw: (ctx, x, y, scale, t, op) => {
+      const s = scale;
+      // long flowing black dress
+      ctx.fillStyle = `rgba(5,5,10,${op})`;
+      ctx.beginPath();
+      ctx.moveTo(x - 70*s, y + 220*s);
+      ctx.quadraticCurveTo(x - 90*s + Math.sin(t*0.003)*8*s, y + 60*s, x - 40*s, y - 60*s);
+      ctx.quadraticCurveTo(x, y - 100*s, x + 40*s, y - 60*s);
+      ctx.quadraticCurveTo(x + 90*s + Math.sin(t*0.003)*8*s, y + 60*s, x + 70*s, y + 220*s);
+      ctx.closePath(); ctx.fill();
+      // veil over head
+      ctx.fillStyle = `rgba(0,0,0,${op})`;
+      ctx.beginPath();
+      ctx.ellipse(x, y - 50*s, 40*s, 50*s, 0, 0, Math.PI*2);
+      ctx.fill();
+      // veil drape down
+      ctx.beginPath();
+      ctx.moveTo(x - 38*s, y - 60*s);
+      ctx.lineTo(x - 30*s, y + 20*s);
+      ctx.lineTo(x + 30*s, y + 20*s);
+      ctx.lineTo(x + 38*s, y - 60*s);
+      ctx.closePath(); ctx.fill();
+      // suggestion of eyes through veil — barely
+      ctx.fillStyle = `rgba(60,0,0,${op*0.8})`;
+      ctx.beginPath(); ctx.arc(x - 10*s, y - 55*s, 2*s, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x + 10*s, y - 55*s, 2*s, 0, Math.PI*2); ctx.fill();
+      // pale hands held up (clasped)
+      ctx.fillStyle = `rgba(220,210,200,${op*0.85})`;
+      ctx.beginPath();
+      ctx.ellipse(x, y + 30*s, 18*s, 22*s, 0, 0, Math.PI*2);
+      ctx.fill();
+    },
+  },
+];
+
+// ===========================================================================
+// Game state
+// ===========================================================================
+let lives = 5;
+let kills = 0;
+let startTs = 0;
+let gameRunning = false;
+
+let state = 'safe';            // 'safe' | 'charging' | 'strike' | 'cooldown'
+let stateEnteredAt = 0;
+let currentEntity = null;      // {def, x, y, scale, opacity, startedAt}
+let lastBrightness = 100;
+let smoothedBrightness = 100;
+
+// Difficulty tuning
+const DARK_THRESHOLD = 60;     // brightness below this counts as dark
+const CHARGE_MS = 800;         // ms from dark detected to strike
+const STRIKE_WINDOW_MS = 1000; // ms to flash after strike begins
+const COOLDOWN_MS = 1800;      // ms after successful flash or hit
+const MIN_GAP_MS = 2200;       // min gap between consecutive entity appearances
+
+let lastFlashAt = 0;
+let lastEntityClearedAt = 0;
+
+// ===========================================================================
+// Game flow
+// ===========================================================================
+function setStatus(text, color) {
+  statusEl.textContent = text;
+  if (color) statusEl.style.color = color;
+}
+
+function updateHUD() {
+  let h = '';
+  for (let i=0; i<5; i++) h += i < lives ? '❤' : '♡';
+  heartsEl.innerHTML = h;
+  killsPill.textContent = 'PATAY: ' + kills;
+  const elapsed = gameRunning ? (performance.now() - startTs) / 1000 : 0;
+  const m = Math.floor(elapsed/60), s = Math.floor(elapsed%60);
+  timePill.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 
 function startGame() {
-  try { ensureAudio(); } catch(e) { console.warn('audio init blocked:', e); audioOn = false; }
-  world = generateWorld(Math.floor(Math.random()*1e9));
-  player.x = world.spawn.x; player.y = world.spawn.y;
-  player.hp = player.maxHp; player.battery = 1.0;
-  player.torchOn = false; player.hasCandles = 0;
-  aswang.x = WORLD_W - 400 + Math.random()*200;
-  aswang.y = WORLD_H - 400 + Math.random()*200;
-  aswang.state = 'wander'; aswang.cooldown = 0; aswang.retreatUntil = 0;
-  nightT = 0;
-  shake = 0; fakeSilhouette = null;
-  state = 'play';
-  hud.classList.remove('hidden');
-  overlay.classList.remove('show');
-  setHint('Maghanap ng kandila. Dalhin sa simbahan.');
-  lastTs = performance.now();
+  ensureAudio();
+  lives = 5; kills = 0;
+  state = 'safe';
+  currentEntity = null;
+  startTs = performance.now();
+  gameRunning = true;
+  gameover.classList.remove('show');
+  permGate.classList.add('hidden');
+  setStatus('');
+  requestCamera();
 }
 
-function togglePause() {
-  if (state === 'play') {
-    state = 'pause';
-    showCard('PAUSADO', '',
-      '<p>Pakinggan ang kuliglig. Naghihintay ang aswang.</p>',
-      'MAGPATULOY', () => { state='play'; lastTs=performance.now(); });
-  } else if (state === 'pause') {
-    overlay.classList.remove('show');
-    state='play'; lastTs=performance.now();
-  }
-}
-
-function lose(reason) {
-  if (state !== 'play') return;
-  state = 'lose';
-  scream();
-  flashScare(1.0);
-  hud.classList.add('hidden');
-  showCard('NAHULI', 'lose',
-    `<p>${reason}</p>
-     <p class="tag">Sinindihang kandila: ${world.candles.filter(c=>c.lit).length} / 3</p>`,
-    'ULITIN', safeStart);
-}
-function win() {
-  if (state !== 'play') return;
-  state = 'win';
-  bell();
-  const t = Math.floor(nightT * NIGHT_DURATION);
-  if (!bestTime || t < bestTime) { bestTime = t; try { localStorage.setItem('gabi_best', String(bestTime)); } catch(e){} }
-  hud.classList.add('hidden');
-  showCard('UMAGA NA', 'win',
-    `<p>Nagliliwanag ang tatlong kandila sa altar. Sa loob ng kawayanan, narinig ang sigaw ng aswang — at nawala.</p>
-     <p class="tag">Tapos sa ${t}s &nbsp;&middot;&nbsp; Pinakamabilis ${bestTime||t}s</p>`,
-    'MULING SUBUKAN', safeStart);
-}
-
-function setHint(text) { hintPill.textContent = text; }
-
-startBtn.addEventListener('click', safeStart);
-startBtn.addEventListener('pointerdown', () => setTimeout(() => { if (state === 'menu') safeStart(); }, 50));
-
-// ---------------------------------------------------------------------------
-// Camera
-// ---------------------------------------------------------------------------
-let camX = 0, camY = 0;
-function updateCamera() {
-  camX = Math.max(0, Math.min(WORLD_W - VW, player.x - VW/2));
-  camY = Math.max(0, Math.min(WORLD_H - VH, player.y - VH/2));
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-function circleHitsHut(px, py, pr) {
-  for (const h of world.huts) {
-    if (px + pr > h.x && px - pr < h.x + h.w && py + pr > h.y && py - pr < h.y + h.h) {
-      const cx = Math.max(h.x, Math.min(px, h.x + h.w));
-      const cy = Math.max(h.y, Math.min(py, h.y + h.h));
-      if ((px-cx)*(px-cx) + (py-cy)*(py-cy) < pr*pr) return { h, cx, cy };
+function endGame(reason) {
+  gameRunning = false;
+  state = 'gameover';
+  loseSfx();
+  goReason.textContent = reason;
+  const elapsed = (performance.now() - startTs) / 1000;
+  const m = Math.floor(elapsed/60), s = Math.floor(elapsed%60);
+  goStats.textContent = `Patay: ${kills} · Nabuhay ka ng ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  gameover.classList.add('show');
+  try {
+    const best = JSON.parse(localStorage.getItem('gabi_multo_best') || '{"kills":0,"sec":0}');
+    if (kills > best.kills || (kills === best.kills && elapsed > best.sec)) {
+      localStorage.setItem('gabi_multo_best', JSON.stringify({ kills, sec: elapsed }));
     }
-  }
-  return null;
-}
-function circleHitsTree(px, py, pr) {
-  for (const t of world.trees) {
-    const dx = px - t.x, dy = py - t.y;
-    if (dx*dx + dy*dy < (pr + t.r*0.6)*(pr + t.r*0.6)) return t;
-  }
-  return null;
-}
-function lineHitsAnyHut(x1, y1, x2, y2) {
-  const steps = Math.ceil(Math.hypot(x2-x1, y2-y1) / 8);
-  for (let i=1; i<=steps; i++) {
-    const t = i/steps;
-    const px = x1 + (x2-x1)*t, py = y1 + (y2-y1)*t;
-    for (const h of world.huts) {
-      if (px > h.x && px < h.x+h.w && py > h.y && py < h.y+h.h) return true;
-    }
-  }
-  return false;
-}
-function tryMove(ent, dx, dy) {
-  if (dx !== 0) {
-    const hit = circleHitsHut(ent.x + dx, ent.y, ent.r) || circleHitsTree(ent.x + dx, ent.y, ent.r);
-    if (!hit) ent.x += dx;
-  }
-  if (dy !== 0) {
-    const hit = circleHitsHut(ent.x, ent.y + dy, ent.r) || circleHitsTree(ent.x, ent.y + dy, ent.r);
-    if (!hit) ent.y += dy;
-  }
-  ent.x = Math.max(ent.r, Math.min(WORLD_W - ent.r, ent.x));
-  ent.y = Math.max(ent.r, Math.min(WORLD_H - ent.r, ent.y));
+  } catch (e) {}
 }
 
-function toggleTorch() {
-  if (state !== 'play') return;
-  if (player.battery <= 0) { player.torchOn = false; setHint('Patay na ang baterya.'); return; }
-  player.torchOn = !player.torchOn;
-  blip(player.torchOn?900:400, 0.07, 'square', 0.18);
+function takeHit(reason) {
+  lives--;
+  hitSfx();
+  redFlash.classList.add('on');
+  setTimeout(() => redFlash.classList.remove('on'), 200);
+  vignette.classList.add('danger');
+  setTimeout(() => vignette.classList.remove('danger'), 400);
+  setStatus('NAHULI KA — ' + (currentEntity ? currentEntity.def.name : ''), '#e74c3c');
+  setTimeout(() => setStatus(''), 1200);
+  if (lives <= 0) {
+    endGame(reason || 'Kinuha ka ng nilalang.');
+    return;
+  }
+  state = 'cooldown';
+  stateEnteredAt = performance.now();
+  currentEntity = null;
 }
 
-function tryUse() {
-  if (state !== 'play') return;
-  for (const c of world.candles) {
-    if (!c.collected && !c.lit && Math.hypot(player.x - c.x, player.y - c.y) < 28) {
-      c.collected = true; player.hasCandles++;
-      blip(660, 0.12, 'triangle', 0.22);
-      setHint('Nakuha ang kandila. Dalhin sa simbahan.');
-      return;
-    }
-  }
-  for (const b of world.batteries) {
-    if (!b.collected && Math.hypot(player.x - b.x, player.y - b.y) < 28) {
-      b.collected = true;
-      player.battery = Math.min(1, player.battery + 0.5);
-      blip(800, 0.12, 'square', 0.18);
-      setHint('Nadagdagan ang baterya.');
-      return;
-    }
-  }
-  const ch = world.chapel;
-  if (player.x > ch.x - 30 && player.x < ch.x + ch.w + 30 && player.y > ch.y - 30 && player.y < ch.y + ch.h + 30) {
-    if (player.hasCandles > 0) {
-      for (const c of world.candles) if (c.collected && !c.lit) { c.lit = true; break; }
-      blip(880, 0.6, 'triangle', 0.25);
-      const lit = world.candles.filter(c => c.lit).length;
-      setHint(`Sinindihan ang kandila — ${lit} sa 3.`);
-      if (lit === 3) setTimeout(win, 700);
-    } else {
-      setHint('Kailangan mo ng kandila para sindihan.');
-    }
+function killEntity() {
+  if (!currentEntity) return;
+  kills++;
+  flashSfx();
+  whiteFlash.classList.add('on');
+  setTimeout(() => whiteFlash.classList.remove('on'), 80);
+  setStatus('NAWALA — ' + currentEntity.def.name, '#caa860');
+  setTimeout(() => setStatus(''), 1000);
+  state = 'cooldown';
+  stateEnteredAt = performance.now();
+  lastEntityClearedAt = performance.now();
+  currentEntity = null;
+}
+
+function fireFlash() {
+  if (!gameRunning) return;
+  lastFlashAt = performance.now();
+  flashBtn.classList.remove('alert');
+  whiteFlash.classList.add('on');
+  setTimeout(() => whiteFlash.classList.remove('on'), 70);
+  flashSfx();
+  if (state === 'charging' || state === 'strike') {
+    killEntity();
   }
 }
 
-function flashScare(amt) {
-  scareFlash.classList.add('on');
-  setTimeout(() => scareFlash.classList.remove('on'), 80 + amt*120);
-}
-
-// ---------------------------------------------------------------------------
-// Update
-// ---------------------------------------------------------------------------
-let lastTs = performance.now();
-
-function update(dt) {
-  // ---- movement input ----
-  let ix = 0, iy = 0;
-  if (keys['w'] || keys['arrowup']    || padState.up)    iy -= 1;
-  if (keys['s'] || keys['arrowdown']  || padState.down)  iy += 1;
-  if (keys['a'] || keys['arrowleft']  || padState.left)  ix -= 1;
-  if (keys['d'] || keys['arrowright'] || padState.right) ix += 1;
-  const running = (keys['shift'] || padState.run) && (ix||iy);
-  const len = Math.hypot(ix, iy);
-  if (len > 0) {
-    ix /= len; iy /= len;
-    const sp = running ? player.runSpeed : player.speed;
-    tryMove(player, ix * sp * dt, iy * sp * dt);
-    player.facing = Math.atan2(iy, ix);
-    player.walkAnim += dt * (running ? 14 : 8);
-  }
-
-  // ---- torch ----
-  if (player.torchOn) {
-    player.battery -= dt * 0.035;
-    if (player.battery <= 0) { player.battery = 0; player.torchOn = false; setHint('Patay na ang baterya.'); }
-  }
-
-  // ---- clock ----
-  nightT += dt / NIGHT_DURATION;
-  if (nightT >= 1) { lose('Hindi na dumating ang umaga. Kinuha ka ng aswang sa dilim.'); return; }
-
-  // ---- aswang ----
-  updateAswang(dt);
-
-  // ---- collision aswang vs player ----
-  if (aswang.hitCooldown > 0) aswang.hitCooldown -= dt;
-  const dPlayer = Math.hypot(aswang.x - player.x, aswang.y - player.y);
-  if (dPlayer < aswang.r + player.r + 2 && aswang.hitCooldown <= 0 && aswang.state !== 'retreat') {
-    player.hp -= 1; aswang.hitCooldown = 1.2;
-    blip(120, 0.3, 'sawtooth', 0.35);
-    thump();
-    flashScare(0.6);
-    shake = Math.max(shake, 14);
-    const a = Math.atan2(player.y - aswang.y, player.x - aswang.x);
-    tryMove(player, Math.cos(a)*30, Math.sin(a)*30);
-    if (player.hp <= 0) { lose('Hinila ka ng aswang sa loob ng kawayanan.'); return; }
-  }
-
-  // ---- heartbeat + dread audio ----
-  const proximity = Math.max(0, 1 - dPlayer / 380);
-  if (heartGain) heartGain.gain.value = proximity * 0.6;
-  if (proximity > 0.4 && Math.random() < dt * (2 + proximity*4)) heartbeat();
-
-  // whispers when aswang is close-ish
-  const now = performance.now();
-  if (proximity > 0.35 && now - lastWhisperAt > 4500 + Math.random()*5000) {
-    whisper();
-    lastWhisperAt = now;
-  }
-  // giggle on chase
-  if (aswang.state === 'chase' && now - lastGiggleAt > 3500 + Math.random()*3500) {
-    giggle();
-    lastGiggleAt = now;
-  }
-
-  // shake decay
-  if (shake > 0) shake = Math.max(0, shake - dt * 40);
-  // shake while aswang chasing nearby
-  if (aswang.state === 'chase' && dPlayer < 180) shake = Math.max(shake, 6);
-  // shake when stalking very close
-  if (aswang.state === 'stalk' && dPlayer < 120) shake = Math.max(shake, 3);
-
-  // fake silhouette pops at random when aswang stalking
-  if ((aswang.state === 'stalk' || aswang.state === 'wander') && now - lastFakeAt > 9000 + Math.random()*16000) {
-    lastFakeAt = now;
-    // place at periphery in player's facing-ish direction
-    const ang = Math.random() * Math.PI*2;
-    const dist = 220 + Math.random()*60;
-    fakeSilhouette = {
-      x: player.x + Math.cos(ang) * dist,
-      y: player.y + Math.sin(ang) * dist,
-      until: now + 280 + Math.random()*220,
-    };
-    // soft whisper accompanies it
-    if (proximity < 0.3 && Math.random() < 0.7) whisper();
-  }
-  if (fakeSilhouette && now > fakeSilhouette.until) fakeSilhouette = null;
-
-  // ---- HUD ----
-  updateCamera();
-  candleEl.textContent = `${world.candles.filter(c => c.lit).length}/3`;
-  batBar.style.width = (player.battery*100).toFixed(0) + '%';
-  hpBar.style.width  = (player.hp / player.maxHp * 100).toFixed(0) + '%';
-  const hourF = 4 + nightT * 4;
-  const hr = Math.floor(hourF);
-  const mn = Math.floor((hourF - hr) * 60);
-  clockPill.textContent = `${String(hr).padStart(2,'0')}:${String(mn).padStart(2,'0')}`;
-}
-
-function updateAswang(dt) {
-  const dx = player.x - aswang.x, dy = player.y - aswang.y;
-  const d = Math.hypot(dx, dy);
-  let detectRange = 220;
-  if (player.torchOn) detectRange = 460;
-  const visible = d < detectRange && !lineHitsAnyHut(aswang.x, aswang.y, player.x, player.y);
-  aswang.sees = visible;
-
-  if (state === 'play') {
-    if (aswang.state === 'retreat' && performance.now() > aswang.retreatUntil) aswang.state = 'wander';
-    else if (aswang.state !== 'retreat') {
-      if (visible) {
-        if (aswang.state !== 'chase') {
-          // freshly spotted player — small scare cue
-          giggle();
-          flashScare(0.3);
-        }
-        aswang.state = 'chase';
-      }
-      else if (aswang.state === 'chase') { aswang.state = 'stalk'; aswang.cooldown = 3; }
-      else if (aswang.state === 'stalk') {
-        aswang.cooldown -= dt;
-        if (aswang.cooldown <= 0) aswang.state = 'wander';
-      }
-    }
-  }
-
-  if (player.torchOn && d < 130) {
-    const beamDir = player.facing;
-    const ang = Math.atan2(aswang.y - player.y, aswang.x - player.x);
-    let delta = ang - beamDir;
-    while (delta >  Math.PI) delta -= Math.PI*2;
-    while (delta < -Math.PI) delta += Math.PI*2;
-    if (Math.abs(delta) < player.torchCone) {
-      aswang.state = 'retreat';
-      aswang.retreatUntil = performance.now() + 1500;
-      blip(1200, 0.08, 'square', 0.12);
-    }
-  }
-
-  if (aswang.state === 'chase') {
-    const a = Math.atan2(dy, dx);
-    tryMove(aswang, Math.cos(a)*aswang.chaseSpeed*dt, Math.sin(a)*aswang.chaseSpeed*dt);
-  } else if (aswang.state === 'stalk') {
-    const a = Math.atan2(dy, dx);
-    tryMove(aswang, Math.cos(a)*aswang.speed*0.7*dt, Math.sin(a)*aswang.speed*0.7*dt);
-  } else if (aswang.state === 'retreat') {
-    const a = Math.atan2(aswang.y - player.y, aswang.x - player.x);
-    tryMove(aswang, Math.cos(a)*aswang.chaseSpeed*dt, Math.sin(a)*aswang.chaseSpeed*dt);
-  } else {
-    if (!aswang.wanderTarget || Math.hypot(aswang.wanderTarget.x-aswang.x, aswang.wanderTarget.y-aswang.y) < 24) {
-      aswang.wanderTarget = { x: 100 + Math.random()*(WORLD_W-200), y: 100 + Math.random()*(WORLD_H-200) };
-    }
-    const a = Math.atan2(aswang.wanderTarget.y-aswang.y, aswang.wanderTarget.x-aswang.x);
-    tryMove(aswang, Math.cos(a)*aswang.speed*0.5*dt, Math.sin(a)*aswang.speed*0.5*dt);
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Render
-// ---------------------------------------------------------------------------
-function render() {
-  // apply screen shake to camera offset
-  const sx = (Math.random()*2-1) * shake;
-  const sy = (Math.random()*2-1) * shake;
-
-  ctx.fillStyle = '#080a0e';
-  ctx.fillRect(0, 0, VW, VH);
-
-  ctx.save();
-  ctx.translate(-camX + sx, -camY + sy);
-
-  const gridSize = 64;
-  const startX = Math.floor(camX/gridSize)*gridSize;
-  const startY = Math.floor(camY/gridSize)*gridSize;
-  for (let y=startY; y<camY+VH+gridSize; y+=gridSize) {
-    for (let x=startX; x<camX+VW+gridSize; x+=gridSize) {
-      const v = ((x*73856093) ^ (y*19349663)) & 7;
-      ctx.fillStyle = v < 3 ? '#0c1410' : '#0a120e';
-      ctx.fillRect(x, y, gridSize, gridSize);
-    }
-  }
-
-  const r = world.river;
-  ctx.strokeStyle = '#0b2230'; ctx.lineWidth = r.width;
-  ctx.beginPath();
-  for (let i=0; i<r.points.length; i++) {
-    const p = r.points[i];
-    if (i===0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
-  }
-  ctx.stroke();
-  ctx.strokeStyle = '#0e3148'; ctx.lineWidth = r.width - 14;
-  ctx.stroke();
-
-  ctx.fillStyle = '#1a2a18';
-  for (const g of world.grass) {
-    if (g.x < camX-20 || g.x > camX+VW+20 || g.y < camY-20 || g.y > camY+VH+20) continue;
-    ctx.fillRect(g.x, g.y, 2, 4);
-    ctx.fillRect(g.x+3, g.y+1, 2, 3);
-  }
-
-  for (const k of world.rocks) {
-    if (k.x < camX-30 || k.x > camX+VW+30 || k.y < camY-30 || k.y > camY+VH+30) continue;
-    ctx.fillStyle = '#2a2e34'; ctx.beginPath(); ctx.arc(k.x, k.y, k.r, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#3a3f46'; ctx.beginPath(); ctx.arc(k.x-2, k.y-2, k.r*0.7, 0, Math.PI*2); ctx.fill();
-  }
-
-  drawChapel(world.chapel);
-  for (const h of world.huts) drawHut(h);
-  for (const t of world.trees) drawTree(t);
-  for (const c of world.candles) if (!c.collected) drawCandle(c);
-  for (const b of world.batteries) if (!b.collected) drawBattery(b);
-
-  drawAswang(aswang);
-  drawPlayer(player);
-
-  // fake silhouette — quick flicker, slightly transparent
-  if (fakeSilhouette) {
-    ctx.save();
-    ctx.globalAlpha = 0.7 + 0.3*Math.sin(performance.now()*0.04);
-    drawAswang({ x: fakeSilhouette.x, y: fakeSilhouette.y, state: 'stalk', r: 14 }, true);
-    ctx.restore();
-  }
-
-  ctx.restore();
-
-  drawLighting();
-
-  if (player.hasCandles > 0 && world.candles.some(c => c.collected && !c.lit)) {
-    ctx.save();
-    ctx.globalAlpha = 0.4 + 0.2 * Math.sin(performance.now()*0.004);
-    ctx.strokeStyle = '#f3a857'; ctx.lineWidth = 2;
-    ctx.strokeRect(world.chapel.x - camX - 4 + sx, world.chapel.y - camY - 4 + sy, world.chapel.w + 8, world.chapel.h + 8);
-    ctx.restore();
-  }
-}
-
-function drawLighting() {
-  ctx.save();
-  // base darkness — heart-rate pulse
-  const proximity = aswang ? Math.max(0, 1 - Math.hypot(aswang.x - player.x, aswang.y - player.y) / 380) : 0;
-  const darkBase = 0.78 + proximity * 0.10;
-  ctx.fillStyle = `rgba(0,0,0,${darkBase - 0.12*Math.sin(performance.now()*0.003)})`;
-  ctx.fillRect(0, 0, VW, VH);
-
-  ctx.globalCompositeOperation = 'destination-out';
-  const pxs = player.x - camX, pys = player.y - camY;
-  const aura = ctx.createRadialGradient(pxs, pys, 4, pxs, pys, 70);
-  aura.addColorStop(0, 'rgba(255,255,255,0.85)');
-  aura.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = aura;
-  ctx.beginPath(); ctx.arc(pxs, pys, 70, 0, Math.PI*2); ctx.fill();
-
-  if (player.torchOn && player.battery > 0) {
-    const ang = player.facing;
-    const range = player.torchRange;
-    const cone = player.torchCone;
-    const g = ctx.createRadialGradient(pxs, pys, 8, pxs, pys, range);
-    g.addColorStop(0, 'rgba(255,255,255,0.95)');
-    g.addColorStop(0.7, 'rgba(255,255,255,0.5)');
-    g.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.moveTo(pxs, pys);
-    ctx.arc(pxs, pys, range, ang - cone, ang + cone);
-    ctx.closePath();
-    ctx.fill();
-  }
-
-  ctx.restore();
-
-  if (player.torchOn && player.battery > 0) {
-    ctx.save();
-    ctx.globalCompositeOperation = 'overlay';
-    const pxs = player.x - camX, pys = player.y - camY;
-    const ang = player.facing;
-    const range = player.torchRange;
-    const cone = player.torchCone;
-    const g = ctx.createRadialGradient(pxs, pys, 8, pxs, pys, range);
-    g.addColorStop(0, 'rgba(243,168,87,0.45)');
-    g.addColorStop(1, 'rgba(243,168,87,0)');
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.moveTo(pxs, pys);
-    ctx.arc(pxs, pys, range, ang - cone, ang + cone);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-  }
-}
-
-function drawHut(h) {
-  ctx.fillStyle = '#3a2a1a';
-  ctx.fillRect(h.x, h.y + h.h*0.45, h.w, h.h*0.55);
-  ctx.fillStyle = '#251a10';
-  ctx.fillRect(h.x + 6, h.y + h.h - 6, 6, 6);
-  ctx.fillRect(h.x + h.w - 12, h.y + h.h - 6, 6, 6);
-  const roofTone = h.roofTone || 0.6;
-  ctx.fillStyle = `rgb(${Math.floor(70*roofTone)},${Math.floor(50*roofTone)},${Math.floor(28*roofTone)})`;
-  ctx.beginPath();
-  ctx.moveTo(h.x - 8, h.y + h.h*0.5);
-  ctx.lineTo(h.x + h.w/2, h.y - 8);
-  ctx.lineTo(h.x + h.w + 8, h.y + h.h*0.5);
-  ctx.closePath(); ctx.fill();
-  ctx.fillStyle = 'rgba(0,0,0,0.35)';
-  ctx.fillRect(h.x - 8, h.y + h.h*0.5 - 2, h.w + 16, 4);
-  ctx.fillStyle = '#0d0805';
-  if (h.doorSide === 'S')      ctx.fillRect(h.x + h.w/2 - 10, h.y + h.h - 22, 20, 22);
-  else if (h.doorSide === 'N') ctx.fillRect(h.x + h.w/2 - 10, h.y + h.h*0.45, 20, 22);
-  else if (h.doorSide === 'E') ctx.fillRect(h.x + h.w - 8, h.y + h.h - 30, 8, 24);
-  else                          ctx.fillRect(h.x, h.y + h.h - 30, 8, 24);
-  ctx.fillStyle = '#1a0f06';
-  ctx.fillRect(h.x + 14, h.y + h.h*0.55, 14, 10);
-}
-
-function drawTree(t) {
-  if (t.kind === 'banana') {
-    ctx.fillStyle = '#3b4a28';
-    ctx.fillRect(t.x - 3, t.y - 4, 6, 14);
-    ctx.fillStyle = '#2a4a26';
-    for (let i=0; i<5; i++) {
-      const a = i*(Math.PI*2/5) + 0.4;
-      ctx.beginPath();
-      ctx.ellipse(t.x + Math.cos(a)*t.r*0.8, t.y - 4 + Math.sin(a)*t.r*0.6,
-                  t.r*0.9, t.r*0.4, a, 0, Math.PI*2);
-      ctx.fill();
-    }
-    ctx.fillStyle = '#3a5e2c';
-    ctx.beginPath(); ctx.arc(t.x, t.y - 6, t.r*0.35, 0, Math.PI*2); ctx.fill();
-  } else {
-    ctx.fillStyle = '#2b1f10';
-    ctx.fillRect(t.x - 2, t.y - 2, 4, 16);
-    ctx.fillStyle = '#23391a';
-    for (let i=0; i<6; i++) {
-      const a = i*(Math.PI*2/6);
-      ctx.beginPath();
-      ctx.ellipse(t.x + Math.cos(a)*t.r*0.9, t.y - 4 + Math.sin(a)*t.r*0.6,
-                  t.r*0.7, t.r*0.3, a, 0, Math.PI*2);
-      ctx.fill();
-    }
-    ctx.fillStyle = '#3a5a2a';
-    ctx.beginPath(); ctx.arc(t.x, t.y - 4, t.r*0.3, 0, Math.PI*2); ctx.fill();
-  }
-}
-
-function drawChapel(c) {
-  ctx.fillStyle = '#1a1a1a';
-  ctx.fillRect(c.x, c.y + 30, c.w, c.h - 30);
-  ctx.fillStyle = '#262626';
-  ctx.beginPath();
-  ctx.moveTo(c.x - 10, c.y + 50);
-  ctx.lineTo(c.x + c.w/2, c.y - 10);
-  ctx.lineTo(c.x + c.w + 10, c.y + 50);
-  ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#caa860';
-  ctx.fillRect(c.x + c.w/2 - 2, c.y - 30, 4, 28);
-  ctx.fillRect(c.x + c.w/2 - 10, c.y - 22, 20, 4);
-  ctx.fillStyle = '#070707';
-  ctx.fillRect(c.x + c.w/2 - 16, c.y + c.h - 42, 32, 42);
-  ctx.strokeStyle = '#caa860'; ctx.lineWidth = 1;
-  ctx.strokeRect(c.x + c.w/2 - 16, c.y + c.h - 42, 32, 42);
-  ctx.fillStyle = '#3a2010';
-  ctx.fillRect(c.x + 16, c.y + 56, 14, 22);
-  ctx.fillRect(c.x + c.w - 30, c.y + 56, 14, 22);
-  const lit = world.candles.filter(x => x.lit).length;
-  if (lit) {
-    ctx.save();
-    ctx.globalAlpha = 0.4 + 0.2*Math.sin(performance.now()*0.008);
-    ctx.fillStyle = '#f3a857';
-    ctx.beginPath();
-    ctx.arc(c.x + c.w/2, c.y + c.h/2 + 10, 8 + lit*4, 0, Math.PI*2);
-    ctx.fill();
-    ctx.restore();
-  }
-}
-
-function drawCandle(c) {
-  if (c.x < camX-20 || c.x > camX+VW+20 || c.y < camY-20 || c.y > camY+VH+20) return;
-  ctx.fillStyle = '#e9d2a4';
-  ctx.fillRect(c.x - 2, c.y - 4, 4, 10);
-  ctx.save();
-  ctx.globalAlpha = 0.7 + 0.3*Math.sin(performance.now()*0.012);
-  ctx.fillStyle = '#f3a857';
-  ctx.beginPath(); ctx.arc(c.x, c.y - 7, 3, 0, Math.PI*2); ctx.fill();
-  ctx.restore();
-  const g = ctx.createRadialGradient(c.x, c.y - 6, 1, c.x, c.y - 6, 20);
-  g.addColorStop(0, 'rgba(243,168,87,0.55)');
-  g.addColorStop(1, 'rgba(243,168,87,0)');
-  ctx.fillStyle = g;
-  ctx.beginPath(); ctx.arc(c.x, c.y - 6, 20, 0, Math.PI*2); ctx.fill();
-}
-
-function drawBattery(b) {
-  if (b.x < camX-20 || b.x > camX+VW+20 || b.y < camY-20 || b.y > camY+VH+20) return;
-  ctx.fillStyle = '#444';
-  ctx.fillRect(b.x - 4, b.y - 3, 8, 6);
-  ctx.fillStyle = '#888';
-  ctx.fillRect(b.x + 4, b.y - 1, 2, 2);
-  ctx.fillStyle = '#caa860';
-  ctx.fillRect(b.x - 3, b.y - 2, 2, 4);
-}
-
-function drawPlayer(p) {
-  const bob = Math.sin(p.walkAnim) * 1.2;
-  ctx.fillStyle = 'rgba(0,0,0,0.4)';
-  ctx.beginPath(); ctx.ellipse(p.x, p.y + 8, 8, 3, 0, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = '#c25d3a';
-  ctx.fillRect(p.x - 5, p.y - 5 + bob, 10, 10);
-  ctx.fillStyle = '#e0b58a';
-  ctx.beginPath(); ctx.arc(p.x, p.y - 8 + bob, 4, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = '#222';
-  const fx = p.x + Math.cos(p.facing)*2;
-  const fy = p.y - 8 + bob + Math.sin(p.facing)*2;
-  ctx.fillRect(fx-1, fy-1, 1, 1);
-}
-
-function drawAswang(a, faded) {
-  if (a.x < camX-60 || a.x > camX+VW+60 || a.y < camY-60 || a.y > camY+VH+60) return;
-  if (!faded) {
-    ctx.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx.beginPath(); ctx.ellipse(a.x, a.y + 10, 14, 4, 0, 0, Math.PI*2); ctx.fill();
-  }
-  const sz = a.state === 'chase' ? 18 : 14;
-  ctx.fillStyle = faded ? 'rgba(8,8,8,0.85)' : '#0a0a0a';
-  ctx.beginPath();
-  ctx.moveTo(a.x, a.y - sz);
-  for (let i=0; i<14; i++) {
-    const ang = (i / 14) * Math.PI*2;
-    const wob = Math.sin(performance.now()*0.006 + i)*2;
-    const rr = sz + wob;
-    ctx.lineTo(a.x + Math.cos(ang)*rr, a.y + Math.sin(ang)*rr);
-  }
-  ctx.closePath(); ctx.fill();
-  if (a.state === 'chase' || a.state === 'stalk') {
-    ctx.fillStyle = '#9b1c1c';
-    ctx.beginPath(); ctx.arc(a.x - 3, a.y - 2, 1.5, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(a.x + 3, a.y - 2, 1.5, 0, Math.PI*2); ctx.fill();
-    const eg = ctx.createRadialGradient(a.x, a.y - 2, 1, a.x, a.y - 2, 14);
-    eg.addColorStop(0, 'rgba(155,28,28,0.5)');
-    eg.addColorStop(1, 'rgba(155,28,28,0)');
-    ctx.fillStyle = eg;
-    ctx.beginPath(); ctx.arc(a.x, a.y - 2, 14, 0, Math.PI*2); ctx.fill();
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Loop
-// ---------------------------------------------------------------------------
+// ===========================================================================
+// Update loop
+// ===========================================================================
+let lastBSample = 0;
 function loop(ts) {
-  const dt = Math.min(0.05, (ts - lastTs) / 1000);
-  lastTs = ts;
-  if (state === 'play') update(dt);
-  if (world) render();
+  // sample brightness every ~120ms
+  if (ts - lastBSample > 120) {
+    lastBSample = ts;
+    lastBrightness = sampleBrightness();
+    // smooth
+    smoothedBrightness = smoothedBrightness * 0.7 + lastBrightness * 0.3;
+    bFill.style.width = Math.max(0, Math.min(100, smoothedBrightness/2)) + '%';
+  }
+
+  if (gameRunning) {
+    tickGame(ts);
+    drawOverlay(ts);
+  }
+  updateHUD();
   requestAnimationFrame(loop);
 }
 
-world = generateWorld(1);
-player.x = world.spawn.x; player.y = world.spawn.y;
-updateCamera();
-requestAnimationFrame(loop);
+function tickGame(ts) {
+  const now = ts;
+  const isDark = smoothedBrightness < DARK_THRESHOLD;
 
-// straight into the game — no menu
-safeStart();
+  if (state === 'safe') {
+    if (isDark && (now - lastEntityClearedAt) > MIN_GAP_MS) {
+      // spawn an entity in the shadow
+      const def = ENTITIES[Math.floor(Math.random() * ENTITIES.length)];
+      const cw = overlay.width, ch = overlay.height;
+      const margin = 140;
+      currentEntity = {
+        def,
+        x: margin + Math.random() * (cw - margin*2),
+        y: ch * 0.45 + (Math.random() - 0.5) * ch * 0.25,
+        scale: 0.55 + Math.random() * 0.45,
+        startedAt: now,
+        opacity: 0,
+      };
+      state = 'charging';
+      stateEnteredAt = now;
+      whisper();
+      setStatus('MAY NILALANG SA DILIM...', '#caa860');
+    }
+  }
+  else if (state === 'charging') {
+    // fade in over CHARGE_MS
+    const t = (now - stateEnteredAt) / CHARGE_MS;
+    if (currentEntity) currentEntity.opacity = Math.min(0.95, t);
+    if (t >= 1) {
+      state = 'strike';
+      stateEnteredAt = now;
+      stinger();
+      flashBtn.classList.add('alert');
+      setStatus('PINDUTIN ANG FLASH! ' + (currentEntity?.def.name||''), '#e74c3c');
+    }
+  }
+  else if (state === 'strike') {
+    if (currentEntity) currentEntity.opacity = 0.95 + 0.05*Math.sin(now*0.04);
+    if (now - stateEnteredAt > STRIKE_WINDOW_MS) {
+      flashBtn.classList.remove('alert');
+      takeHit('Hindi mo nahawakan ang flashlight. Kinuha ka ng ' + (currentEntity?.def.name||'nilalang') + '.');
+    }
+  }
+  else if (state === 'cooldown') {
+    if (currentEntity) currentEntity.opacity = Math.max(0, currentEntity.opacity - 0.04);
+    flashBtn.classList.remove('alert');
+    if (now - stateEnteredAt > COOLDOWN_MS) {
+      state = 'safe';
+      lastEntityClearedAt = now;
+      currentEntity = null;
+    }
+  }
+}
+
+function drawOverlay(ts) {
+  octx.clearRect(0, 0, overlay.width, overlay.height);
+  if (currentEntity && currentEntity.opacity > 0.02) {
+    const e = currentEntity;
+    // slight wobble per-frame for unsettling motion
+    const wx = e.x + Math.sin(ts * 0.003) * 3;
+    const wy = e.y + Math.cos(ts * 0.004) * 2;
+    e.def.draw(octx, wx, wy, e.scale, ts, e.opacity);
+  }
+}
+
+// ===========================================================================
+// Inputs — FLASH on click/touch/keyboard, anywhere
+// ===========================================================================
+flashBtn.addEventListener('click', e => { e.stopPropagation(); fireFlash(); });
+flashBtn.addEventListener('pointerdown', e => { e.stopPropagation(); fireFlash(); });
+window.addEventListener('keydown', e => {
+  if (!gameRunning) return;
+  if (e.code === 'Space' || e.key === 'f' || e.key === 'F' || e.key === 'Enter') {
+    e.preventDefault();
+    fireFlash();
+  }
+});
+// any pinch/tap anywhere (outside game-over overlay) fires flash
+window.addEventListener('pointerdown', e => {
+  if (!gameRunning) return;
+  if (e.target.closest('#flashBtn') || e.target.closest('#gameover') || e.target.closest('#permGate')) return;
+  fireFlash();
+}, true);
+
+permBtn.addEventListener('click', startGame);
+permBtn.addEventListener('pointerdown', () => setTimeout(() => { if (!gameRunning) startGame(); }, 50));
+restartBtn.addEventListener('click', startGame);
+restartBtn.addEventListener('pointerdown', () => setTimeout(() => { if (!gameRunning) startGame(); }, 50));
+
+// auto-start after 1.2s if no interaction (gracious fallback)
+setTimeout(() => { if (!gameRunning) startGame(); }, 4000);
+
+requestAnimationFrame(loop);
 
 })();
 </script>
