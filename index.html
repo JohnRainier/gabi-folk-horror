@@ -39,11 +39,11 @@
   #hud .bar.health > div { background:var(--blood); }
   #hud .candles { color:var(--warm); font-weight:700; }
   #overlay {
-    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    position:fixed; inset:0; display:none; align-items:center; justify-content:center;
     background:rgba(0,0,0,0.78); backdrop-filter:blur(4px);
     pointer-events:none;
   }
-  #overlay.show { pointer-events:auto; }
+  #overlay.show { display:flex; pointer-events:auto; }
   #overlay .card {
     background:#0a0a10; border:1px solid #2a2a3a; border-radius:10px;
     padding:22px 26px; max-width:540px; text-align:center;
